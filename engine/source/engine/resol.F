@@ -2252,6 +2252,7 @@ C       ALLOCATION Flying Nodes if IDEL
 C========================================================================================
 C                                     PARALLEL SECTION (SMP)
 C========================================================================================
+        print*,"NEED_COMM_INT25_SOLID_EROSION 0",NEED_COMM_INT25_SOLID_EROSION,ispmd,INTERFACES%PARAMETERS%INT25_EROSION_SOLID,NADMESH/=0.AND.IDEL7NG>=1
 
 C------------IF adaptive Mesh : check if there are elements eroded after trimming to remove nodes from interface------
        IF(NADMESH/=0.AND.IDEL7NG>=1)THEN
@@ -2341,6 +2342,7 @@ C Init var parallel SMP
      .                                                   IPARI,IAD_ELEM,SHOOT_STRUCT )
            CALL MY_BARRIER()
             fake_value = (ispmd +1 ) * 10
+        print*,"NEED_COMM_INT25_SOLID_EROSION?",NEED_COMM_INT25_SOLID_EROSION,ispmd,INTERFACES%PARAMETERS%INT25_EROSION_SOLID
             IF(NINTER25/=0.AND.INTERFACES%PARAMETERS%INT25_EROSION_SOLID > 0) THEN
               IF(ITSK==0) THEN
                 IF(NEED_COMM_INT25_SOLID_EROSION) THEN
@@ -5480,6 +5482,9 @@ C WA local  : utilise de 1 a NUMNOD
      .                                                   IPARI,IAD_ELEM,SHOOT_STRUCT  )
             CALL MY_BARRIER()
             IF(NINTER25/=0.AND.INTERFACES%PARAMETERS%INT25_EROSION_SOLID > 0) THEN
+
+            fake_value = (ispmd +1 ) * 10
+        print*,"NEED_COMM_INT25_SOLID_EROSION?",NEED_COMM_INT25_SOLID_EROSION,ispmd,INTERFACES%PARAMETERS%INT25_EROSION_SOLID
                 IF(ITSK==0) THEN
                     IF(NEED_COMM_INT25_SOLID_EROSION) THEN
                         CALL SPMD_ALLREDUCE_INT_COMM(fake_value,fake_res,1,"MAX",COMM_INT25_SOLID_EROSION)

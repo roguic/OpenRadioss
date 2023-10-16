@@ -86,7 +86,7 @@ C-----------------------------------------------
       INTEGER :: NIN,KK,NTY
       INTEGER :: COLOR_INACTI,COLOR_INT25_SOLID_EROSION
       INTEGER :: INACTI,IFQ,ITIED
-      INTEGER :: IDEL,IDELKEEP,ITY,SOLID_EROSION
+      INTEGER :: IDEL,IDELKEEP,SOLID_EROSION
 C-----------------------------------------------
 C   S o u r c e  L i n e s
 C-----------------------------------------------
@@ -158,13 +158,15 @@ C-----------------------------------------------
                     ENDIF
                 ENDIF
                 !   ------------------------------
-
+!           -----------------------------
+!           only tag the TYPE25 interface
+            ELSEIF(NTY==25) THEN
                 !   ------------------------------
                 ! communicator for interface type 25 with solid erosion
                 SOLID_EROSION = IPARI(100,NIN)
                 IDEL = IPARI(17,NIN)! idel option
                 IDELKEEP = IPARI(61,NIN)
-                IF(ITY==25.AND.IPARI(100,NIN)>0.AND.IDEL>0.AND.IDELKEEP/=1) THEN
+                IF(SOLID_EROSION>0.AND.IDEL>0.AND.IDELKEEP/=1) THEN
                     ! ---------------
                     ! check if the proc has S or M node
                     IF(ISENDTO(NIN,ISPMD+1)>0.OR.IRCVFROM(NIN,ISPMD+1)>0) THEN 
@@ -172,6 +174,7 @@ C-----------------------------------------------
                     ENDIF
                     ! ---------------
                 ENDIF
+                !   ------------------------------
             ENDIF
         ENDDO
 !           -----------------------------
