@@ -32,7 +32,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
       SUBROUTINE I7MAIN_CRIT_TRI(
      1  IPARI  ,X      ,NIN    ,
      2  ITASK  ,V      ,XSLV_L ,XMSR_L ,VSLV_L ,
-     3  VMSR_L ,INTBUF_TAB  )
+     3  VMSR_L ,INTBUF_TAB )
 C============================================================================
 C   M o d u l e s
 C-----------------------------------------------

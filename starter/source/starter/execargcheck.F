@@ -84,7 +84,7 @@ C-----------------------------------------------
        INTEGER :: RANDM_SEED,RANDM_ALEA
        REAL(kind=8) :: RANDM_SEED_NBR,RANDM_ALEA_NBR
        INTEGER :: GOT_GRP_SIZE
-       PARAMETER (LENLIST=32)
+       PARAMETER (LENLIST=33)
        CHARACTER (LEN=12) ::  ARGLIST(LENLIST)
        EXTERNAL IARGC
        DATA ARGLIST/
@@ -101,7 +101,7 @@ C-----------------------------------------------
      .    '-INSPIRE_ALM' , '-FLUSH_RST', '-CHECK',
      .    '-HSTP_READ' , '-HSTP_WRITE', '-RXALEA', '-RSEED',
      .    '-PREVIEW',
-     .    '-GRP_SIZE' , '-PYTHON' , '-THNMS1'/
+     .    '-GRP_SIZE' , '-PYTHON' , '-THNMS1', '-NEWSORT'/
 
 C-----------------------------------------------
        IDUM=-1
@@ -304,6 +304,8 @@ C------------------------------------------------
 C------------------------------------------------
             CASE ( '-THNMS1')
                 OUTPUT%TH%DUMP_THNMS1_FILE = 1
+            CASE ( '-NEWSORT')
+              print*," coucou "
 C------------------------------------------------
 C Lignes de commande qui ne sont pas definies
             CASE DEFAULT

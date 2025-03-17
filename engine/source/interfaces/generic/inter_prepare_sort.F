@@ -77,7 +77,7 @@ C-----------------------------------------------
         USE TRI7BOX
         USE FILL_VOXEL_MOD                                                  
         USE VOXEL_DIMENSIONS_MOD, ONLY : COMPUTE_VOXEL_DIMENSIONS
-        USE COMMAND_LINE_ARGS_MOD, ONLY : GOT_PREVIEW
+        USE COMMAND_LINE_ARGS_MOD, ONLY : GOT_PREVIEW,GOT_NEWSORT
 
 C-----------------------------------------------
 C   I m p l i c i t   T y p e s
@@ -131,6 +131,8 @@ C-----------------------------------------------
         nsnr = 0
         nrtm = 0
         nmn = 0
+
+        if(GOT_NEWSORT==0) then
 
         ! -----------------------------
         ! compute the min/max position 
@@ -307,6 +309,139 @@ C-----------------------------------------------
             ENDIF
         ENDDO
 
+      else
+!        if(.not.sort_already_done) then
+!          BOX_LIMIT(1:3) = -EP30
+!          BOX_LIMIT(4:6) = EP30
+!          CALL MY_BARRIER( )
+!          CALL INTER_MINMAX_NODE( ITASK,X )
+!
+!          IF(NSPMD>1.AND.NEED_TO_SORT>0)THEN
+!            IF(ITASK==0) THEN
+!                CALL SPMD_BOX_LIMIT_REDUCTION(NB_INTER_SORTED)
+!            ENDIF
+!            CALL MY_BARRIER()
+!          ENDIF
+! 
+!          if(itask==0) then
+!            added_marge(1) = 0.1* abs(box_limit(1) - box_limit(4))
+!            added_marge(2) = 0.1* abs(box_limit(2) - box_limit(5))
+!            added_marge(3) = 0.1* abs(box_limit(3) - box_limit(6))
+!            global_box(1,1) = box_limit(1) + added_marge(1)
+!            global_box(1,2) = box_limit(4) - added_marge(1)
+!
+!            global_box(2,1) = box_limit(2) + added_marge(2)
+!            global_box(2,2) = box_limit(5) - added_marge(2)
+!
+!            global_box(3,1) = box_limit(3) + added_marge(3)
+!            global_box(3,2) = box_limit(6) - added_marge(3)
+!          endif
+
+!          IF(ITASK==0) then
+!            CALL INTER_BOX_CREATION( )
+!            global_cell_nb(1) = nb_cell_x
+!            global_cell_nb(2) = nb_cell_y
+!            global_cell_nb(3) = nb_cell_z
+!          CALL MY_BARRIER()
+!          sort_already_done = .true.
+!        endif
+
+!        nb_cell_x = global_cell_nb(1)
+!        nb_cell_y = global_cell_nb(2)
+!        nb_cell_z = global_cell_nb(3)
+!        box_limit(1) = global_box(1,1)
+!        box_limit(4) = global_box(1,2)
+!        box_limit(2) = global_box(2,1)
+!        box_limit(5) = global_box(2,2)
+!        box_limit(3) = global_box(3,1)
+!        box_limit(6) = global_box(3,2)
+
+        ! -----------------------------
+        ! compute the min/max position 
+        IF(NB_INTER_SORTED>0) THEN
+          ! ---------------------
+          ! compute the curv and the number of main nodes
+          ! and the min/max position of main nodes
+          DO KK=1,NB_INTER_SORTED
+              N = LIST_INTER_SORTED(KK)
+              NTY = IPARI(7,N)
+              INACTI = IPARI(22,N)        
+              TYPE18 = .FALSE.
+              IF(NTY == 7 .AND. INACTI ==7)TYPE18=.TRUE.
+              ! FILLS INTER_STRUCT%BOX_LIMIT_MAIN
+              CALL INTER_COUNT_NODE_CURV( N,ITASK,IPARI,INTBUF_TAB,
+     1                                      X,INTER_STRUCT)
+          ENDDO
+          ! ---------------------
+          ! compute the min/max position (all nodes)
+          IF(NEED_TO_SORT>0) THEN
+              BOX_LIMIT(1:3) = -EP30
+              BOX_LIMIT(4:6) = EP30
+              CALL MY_BARRIER( )
+              CALL INTER_MINMAX_NODE( ITASK,X )
+          ENDIF
+          ! ---------------------
+      ENDIF
+      ! -----------------------------
+
+      ! -----------------------------
+      ! globalization of min/max position 
+      IF(NSPMD>1.AND.NEED_TO_SORT>0)THEN
+          IF(ITASK==0) THEN
+              CALL SPMD_BOX_LIMIT_REDUCTION(NB_INTER_SORTED)
+          ENDIF
+          CALL MY_BARRIER()
+      ENDIF
+      ! -----------------------------
+
+        ! -----------------------------
+        ! color the voxel (fine grid)
+        IF(NB_INTER_SORTED>0) THEN
+          IF(ITASK==0)  CALL INTER_BOX_CREATION( )
+          CALL MY_BARRIER()
+          do kk=1,nb_inter_sorted
+            n = list_inter_sorted(kk)
+            CALL INTER_VOXEL_CREATION_2(IPARI,INTBUF_TAB,X,N,SORT_COMM)! create the voxel of secondary nodes
+          enddo
+          CALL INTER_COLOR_VOXEL_2( ITASK,NB_INTER_SORTED,LIST_INTER_SORTED,IPARI,INTBUF_TAB,
+     .                              X,INTER_STRUCT,SORT_COMM )
+        ENDIF
+        ! -----------------------------
+        CALL MY_BARRIER()
+        IF(NEED_TO_SORT>0)THEN
+          IF(NSPMD > 1 .AND. ITASK == 0) THEN
+        ! -----------------------------
+            DO KK=1,NB_INTER_SORTED
+              N = LIST_INTER_SORTED(KK)
+              ! -----------------------------
+                      CALL SPMD_CELL_LIST_EXCHANGE_2(IRECVFROM,ISENDTO,1,WEIGHT,IAD_ELEM,
+     .                   FR_ELEM,X,V,MS,TEMP,
+     .                   KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI,
+     .                   N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ)!, GOT_PREVIEW)   !   size of cell list
+              ! -----------------------------
+            enddo
+            DO KK=1,NB_INTER_SORTED
+              N = LIST_INTER_SORTED(KK)
+              ! -----------------------------
+                      CALL SPMD_CELL_LIST_EXCHANGE_2(IRECVFROM,ISENDTO,2,WEIGHT,IAD_ELEM,
+     .                   FR_ELEM,X,V,MS,TEMP,
+     .                   KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI,
+     .                   N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ)!, GOT_PREVIEW)   !   size of cell list
+              ! -----------------------------
+            enddo
+            DO KK=1,NB_INTER_SORTED
+              N = LIST_INTER_SORTED(KK)
+              ! -----------------------------
+                      CALL SPMD_CELL_LIST_EXCHANGE_2(IRECVFROM,ISENDTO,3,WEIGHT,IAD_ELEM,
+     .                   FR_ELEM,X,V,MS,TEMP,
+     .                   KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI,
+     .                   N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ)!, GOT_PREVIEW)   !   size of cell list
+              ! -----------------------------
+            enddo 
+          endif
+        endif     
+      endif
+      CALL MY_BARRIER()
 
 
         RETURN

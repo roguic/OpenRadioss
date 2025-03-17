@@ -82,6 +82,10 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
             !   ---------------------
             TYPE buffer_comm_type
                 !   buffer for communication of position/velocity
+                logical :: comm_needed
+                integer, dimension(:), allocatable :: remote_cell
+                integer, dimension(:), allocatable :: irem
+                my_real, dimension(:), allocatable :: xrem
                 INTEGER, DIMENSION(:), ALLOCATABLE :: IBUF
                 my_real, DIMENSION(:), ALLOCATABLE :: RBUF
             END TYPE buffer_comm_type
@@ -107,6 +111,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
                 INTEGER, DIMENSION(2) :: SIZE_CELL_LIST ! 1 = total number of cell  ; 2 = always 0 for mpi communication
 !                INTEGER, DIMENSION(:,:), ALLOCATABLE :: CELL_LIST ! list of local cell  (size = (total number of cell,3) )
                 INTEGER, DIMENSION(:), ALLOCATABLE :: CELL_LIST ! list of local cell  (size = (total number of cell,3) )
+                integer, dimension(:,:,:), allocatable :: m_cell_mark
 
                 !   -----------------------------
                 !   exchange of number of cell (fine grid) : mode = 1
@@ -132,7 +137,10 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
                 INTEGER, DIMENSION(:), ALLOCATABLE :: REQUEST_NB_S  ! request for S : number of secondary node comm
                 INTEGER, DIMENSION(:), ALLOCATABLE :: REQUEST_NB_R  ! request for S : number of secondary node comm
                 INTEGER, DIMENSION(:), ALLOCATABLE :: NB            ! number of secondary node for each processor
+                INTEGER, DIMENSION(:), ALLOCATABLE :: INDEX_SEND     ! index of processor
                 INTEGER, DIMENSION(:), ALLOCATABLE :: INDEX_RCV     ! index of processor
+                INTEGER, DIMENSION(:), ALLOCATABLE :: INDEX_SEND_2     ! index of processor
+                INTEGER, DIMENSION(:), ALLOCATABLE :: INDEX_RCV_2     ! index of processor
                 INTEGER :: NBSEND_NB ! number of send comm "exchange of secondary node number"
                 INTEGER :: NBRECV_NB ! number of rcv comm "exchange of secondary node number"
                 INTEGER, DIMENSION(:), ALLOCATABLE :: SEND_NB ! index of send comm "exchange of secondary node number"
@@ -153,11 +161,24 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
                 INTEGER, DIMENSION(:), ALLOCATABLE :: LAST_NOD     ! adress of the last node in the VOXEL
                 INTEGER, DIMENSION(:), ALLOCATABLE :: NEXT_NOD     ! adress of the next node in the VOXEL
                 INTEGER, DIMENSION(:,:,:), ALLOCATABLE :: VOXEL    ! voxel of secondary nodes
+                integer :: nb_index_to_s_node_nb_cell
+                integer, dimension(:), allocatable :: index_to_s_node_nb_cell
+                integer, dimension(:,:,:), allocatable :: s_node_nb_cell
                 !   -----------------------------
                 !   Communication of secondary nodes :
                 INTEGER, DIMENSION(:), ALLOCATABLE :: REQ_SD2       ! request for Send : XREM comm
                 INTEGER, DIMENSION(:), ALLOCATABLE :: REQ_SD3       ! request for Send : IREM comm
                 !   -----------------------------
+
+                integer :: nb_request_r_nb_cell_proc
+                integer, dimension(:), allocatable :: request_r_nb_cell_proc                
+                integer :: nb_request_s_nb_cell_proc
+                integer, dimension(:), allocatable :: request_s_nb_cell_proc        
+                
+                integer :: nb_request_r_cell_proc
+                integer, dimension(:), allocatable :: request_r_cell_proc                
+                integer :: nb_request_s_cell_proc
+                integer, dimension(:), allocatable :: request_s_cell_proc 
             END TYPE sorting_comm_type
               
 !   -------------------------    

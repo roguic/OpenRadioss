@@ -62,6 +62,7 @@ C-----------------------------------------------
         USE MULTI_FVM_MOD
         USE INTER_SORTING_MOD
         USE INTER_STRUCT_MOD
+        USE COMMAND_LINE_ARGS_MOD, ONLY : GOT_NEWSORT
 C-----------------------------------------------
 C   I m p l i c i t   T y p e s
 C-----------------------------------------------
@@ -108,7 +109,7 @@ C-----------------------------------------------
      .        MSGOFF, MSGOFF2, MSGOFF3, MSGOFF4, MSGOFF5,
      .        RSIZ, ISIZ, L2, REQ_RD2(NSPMD),
      .        LEN2, RSHIFT, ISHIFT, ND, JDEB, Q, NBB
-
+      integer :: k
       INTEGER :: P_LOC
       INTEGER :: KEY,CODE
      
@@ -121,7 +122,7 @@ C-----------------------------------------------
       INTEGER, DIMENSION(:), ALLOCATABLE :: ITAGNSNFI  
       my_real, DIMENSION(:,:), ALLOCATABLE :: XTMP
       INTEGER :: ADRESS, LOCAL_RANK
-      INTEGER :: SIZE_S
+      INTEGER :: SIZE_S,my_address,next
       INTEGER :: OFFSET(NSPMD)
       INTEGER :: DUMMY(1)
 C-----------------------------------------------
@@ -149,19 +150,29 @@ C================================================================
 
       IF (IMONM > 0) CALL STARTIME(TIMERS,25)
 
+      RSIZ = SORT_COMM(NIN)%RSIZ
+      ISIZ = SORT_COMM(NIN)%ISIZ  
+
       ! ---------------------------------------
       ! prepare the rcv --> local number of main node > 0
       ! allocation of buffer + reception
       IF(IRCVFROM(NIN,LOC_PROC)/=0) THEN  !   local nmn>0
 
-        RSIZ = SORT_COMM(NIN)%RSIZ
-        ISIZ = SORT_COMM(NIN)%ISIZ  
-
        IF(NSNR>0) THEN   !   nsn remote > 0 --> only on proc with nmn>0
-        
+        if(GOT_NEWSORT==0) then
           ALLOCATE(XREM(RSIZ,NSNR),STAT=IERROR)
           ALLOCATE(IREM(ISIZ,NSNR),STAT=IERROR)          
-          
+        else
+          IERROR = 0
+          do i=1,nspmd
+            if(ispmd/=i-1) then
+              allocate(sort_comm(nin)%data_proc(i)%irem(NSNFI(NIN)%P(i)*ISIZ+1))
+              allocate(sort_comm(nin)%data_proc(i)%xrem(NSNFI(NIN)%P(i)*RSIZ+1))
+              sort_comm(nin)%data_proc(i)%irem(:) = -2345678
+              sort_comm(nin)%data_proc(i)%xrem(:) = -2345678
+            endif
+          enddo
+        endif
         
           IF(IERROR/=0) THEN
             CALL ANCMSG(MSGID=20,ANMODE=ANINFO)
@@ -169,20 +180,36 @@ C================================================================
           ENDIF
           IDEB = 1
           DO L = 1, SORT_COMM(NIN)%NBIRECV
-            P = SORT_COMM(NIN)%ISINDEXI(L)
-            LEN = NSNFI(NIN)%P(P)*RSIZ
-            MSGTYP = MSGOFF4 
+            P = SORT_COMM(NIN)%ISINDEXI(L)            
             OFFSET(L) = IDEB
-            CALL MPI_IRECV(
+            if(GOT_NEWSORT==0) then
+              MSGTYP = MSGOFF4
+              LEN = NSNFI(NIN)%P(P)*RSIZ
+              CALL MPI_IRECV(
      1        XREM(1,IDEB),LEN,REAL,IT_SPMD(P),
      2        MSGTYP,SPMD_COMM_WORLD,REQ_RD(L),IERROR)
      
-            LEN2 = NSNFI(NIN)%P(P)*ISIZ
-            MSGTYP = MSGOFF5 
-            CALL MPI_IRECV(
+              MSGTYP = MSGOFF5
+              LEN2 = NSNFI(NIN)%P(P)*ISIZ
+              CALL MPI_IRECV(
      1        IREM(1,IDEB),LEN2,MPI_INTEGER,IT_SPMD(P),
      2        MSGTYP,SPMD_COMM_WORLD,REQ_RD2(L),IERROR)
-            IDEB = IDEB + NSNFI(NIN)%P(P)                  
+              IDEB = IDEB + NSNFI(NIN)%P(P)     
+            else
+              !print*," R :",ncycle,nin,ispmd,P-1,NSNFI(NIN)%P(P)
+              MSGTYP = MSGOFF4
+              LEN = NSNFI(NIN)%P(P)*RSIZ + 1
+              CALL MPI_IRECV(
+     1        sort_comm(nin)%data_proc(p)%xrem,LEN,REAL,IT_SPMD(P),
+     2        MSGTYP,SPMD_COMM_WORLD,REQ_RD(L),IERROR)
+     
+              MSGTYP = MSGOFF5      
+              LEN2 = NSNFI(NIN)%P(P)*ISIZ + 1
+              CALL MPI_IRECV(
+     1        sort_comm(nin)%data_proc(p)%irem,LEN2,MPI_INTEGER,IT_SPMD(P),
+     2        MSGTYP,SPMD_COMM_WORLD,REQ_RD2(L),IERROR)
+              IDEB = IDEB + NSNFI(NIN)%P(P)   
+            endif       
           ENDDO
         ENDIF
       ENDIF
@@ -192,19 +219,38 @@ C================================================================
       ! prepare the send --> local number of secondary node > 0 & remote number of main node > 0
       DO P=1,NSPMD
         IF(P/=LOC_PROC) THEN
-            IF(SORT_COMM(NIN)%NB(P)/=0 ) THEN
+            if(got_newsort/=0) then
+              if(sort_comm(nin)%data_proc(p)%comm_needed) then
                 MSGTYP = MSGOFF4
+                SIZE_S = SORT_COMM(NIN)%NB(P) * SORT_COMM(NIN)%RSIZ + 1                
+                !print*," S :",ncycle,nin,ispmd,P-1,SORT_COMM(NIN)%NB(P)
+                CALL MPI_ISEND(
+     1            SORT_COMM(NIN)%DATA_PROC(P)%RBUF,SIZE_S,REAL,IT_SPMD(P),MSGTYP,
+     2            SPMD_COMM_WORLD,SORT_COMM(NIN)%REQ_SD2(P),ierror)
+                MSGTYP = MSGOFF5              
+                SIZE_S = SORT_COMM(NIN)%NB(P) * SORT_COMM(NIN)%ISIZ + 1              
+
+                CALL MPI_ISEND(
+     1              SORT_COMM(NIN)%DATA_PROC(P)%IBUF,SIZE_S,MPI_INTEGER,
+     2              IT_SPMD(P),MSGTYP,
+     3              SPMD_COMM_WORLD,SORT_COMM(NIN)%REQ_SD3(P),ierror)
+              endif
+            else
+              IF(SORT_COMM(NIN)%NB(P)/=0 ) THEN
+                MSGTYP = MSGOFF4
+
                 SIZE_S = SORT_COMM(NIN)%NB(P) * SORT_COMM(NIN)%RSIZ
                 CALL MPI_ISEND(
-     1          SORT_COMM(NIN)%DATA_PROC(P)%RBUF(1),SIZE_S,REAL,IT_SPMD(P),MSGTYP,
+     1            SORT_COMM(NIN)%DATA_PROC(P)%RBUF,SIZE_S,REAL,IT_SPMD(P),MSGTYP,
      2            SPMD_COMM_WORLD,SORT_COMM(NIN)%REQ_SD2(P),ierror)
-                MSGTYP = MSGOFF5
+                MSGTYP = MSGOFF5       
                 SIZE_S = SORT_COMM(NIN)%NB(P) * SORT_COMM(NIN)%ISIZ
                 CALL MPI_ISEND(
-     1            SORT_COMM(NIN)%DATA_PROC(P)%IBUF(1),SIZE_S,MPI_INTEGER,
+     1            SORT_COMM(NIN)%DATA_PROC(P)%IBUF,SIZE_S,MPI_INTEGER,
      2            IT_SPMD(P),MSGTYP,
      3            SPMD_COMM_WORLD,SORT_COMM(NIN)%REQ_SD3(P),ierror)
-            ENDIF
+              ENDIF
+            endif
         ENDIF
       ENDDO
 
@@ -220,6 +266,7 @@ C================================================================
       ! wait the rcv comm
       IF(IRCVFROM(NIN,LOC_PROC)/=0) THEN  !   nmn > 0
        IF(NSNR>0) THEN   !   nsnr>0 only on proc with nmn>0
+        !print*," Wait R :",ncycle,nin,ispmd,SORT_COMM(NIN)%NBIRECV
          DO L = 1, SORT_COMM(NIN)%NBIRECV
           CALL MPI_WAITANY(SORT_COMM(NIN)%NBIRECV,REQ_RD,INDEXI,STATUS,IERROR) !XREM
 
@@ -249,9 +296,73 @@ C================================================================
     
          ENDDO
          !set specifics IREM and XREM indexes for INT24 sorting
-         IGAPXREMP = IREM(4,1)
-         I24XREMP  = IREM(5,1)
-         I24IREMP  = IREM(6,1)
+         !IGAPXREMP = IREM(4,1)
+         !I24XREMP  = IREM(5,1)
+         !I24IREMP  = IREM(6,1)
+         if(GOT_NEWSORT/=0) then
+          SORT_COMM(NIN)%NSNR = 0
+          do l=1,sort_comm(nin)%nbirecv
+            P = SORT_COMM(NIN)%ISINDEXI(L)          
+            nsnfi(nin)%p(p) = SORT_COMM(NIN)%DATA_PROC(P)%irem(1)
+            SORT_COMM(NIN)%NSNR = SORT_COMM(NIN)%NSNR + nsnfi(nin)%p(p)          
+          enddo
+          nsnr = SORT_COMM(NIN)%NSNR
+          ALLOCATE(XREM(RSIZ,NSNR),STAT=IERROR)
+          ALLOCATE(IREM(ISIZ,NSNR),STAT=IERROR)
+          !xrem(:,:) = -12345678
+          !irem(:,:) = -12345678
+          my_address = 0
+          do l=1,sort_comm(nin)%nbirecv
+            P = SORT_COMM(NIN)%ISINDEXI(L)
+            next = 0
+            do j=1,nsnfi(nin)%p(p)
+              do k=1,RSIZ
+                next = next + 1
+          !      if(SORT_COMM(NIN)%DATA_PROC(P)%xrem(1+next)==-2345678) then
+          !        !  pb -2   2   1  0         110          12           1
+          !        print*," pb -2",nin,ispmd,p-1,1+next,nsnfi(nin)%p(p),l
+          !        stop
+          !      endif
+                xrem(k,my_address+j) = SORT_COMM(NIN)%DATA_PROC(P)%xrem(1+next)
+              enddo
+            enddo
+            next = 0
+            do j=1,nsnfi(nin)%p(p)
+              do k=1,ISIZ
+                next = next + 1
+          !      if(SORT_COMM(NIN)%DATA_PROC(P)%irem(1+next)==-2345678) then
+          !        print*," pb -1",nin,ispmd,p-1,1+next,nsnfi(nin)%p(p),l
+          !        stop
+          !      endif
+                irem(k,my_address+j) = SORT_COMM(NIN)%DATA_PROC(P)%irem(1+next)
+              enddo
+            enddo
+            my_address = my_address + nsnfi(nin)%p(p)
+          enddo  
+!          ideb = 0
+!          DO l = 1, SORT_COMM(NIN)%NBIRECV
+!            P = SORT_COMM(NIN)%ISINDEXI(L)      
+!
+!          do j=1,nsnfi(nin)%p(p)
+!            do k=1,RSIZ              
+!              if(xrem(k,j+ideb)==-12345678) then
+!                print*," pb 1",k,j,xrem(k,j)
+!                stop
+!              endif
+!            enddo
+!          enddo
+!          do j=1,nsnfi(nin)%p(p)
+!            do k=1,isiz
+!              if(irem(k,j+ideb)==-12345678) then
+!                print*," pb 2",k,j,irem(k,j)
+!                stop
+!              endif
+!            enddo
+!          enddo
+!          ideb = ideb + nsnfi(nin)%p(p)
+!          enddo
+         endif           
+
         ENDIF
       ENDIF
 
@@ -285,7 +396,6 @@ C================================================================
         ENDIF
 
        ENDIF
-
       IF (IMONM > 0) CALL STOPTIME(TIMERS,25)
 #endif
       RETURN

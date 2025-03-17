@@ -122,6 +122,7 @@ C
             VMSR(4)=MIN(VMSR(4),V(1,J))
             VMSR(5)=MIN(VMSR(5),V(2,J))
             VMSR(6)=MIN(VMSR(6),V(3,J))
+
           ENDIF
         END DO
 !$OMP END DO NOWAIT
@@ -167,6 +168,7 @@ C
             VMSR(4)=MIN(VMSR(4),V(1,J))
             VMSR(5)=MIN(VMSR(5),V(2,J))
             VMSR(6)=MIN(VMSR(6),V(3,J))
+
           ENDIF
         ENDDO
 !$OMP END DO NOWAIT
@@ -208,6 +210,7 @@ C
       VMSR_G(4)=MIN(VMSR_G(4),VMSR(4))
       VMSR_G(5)=MIN(VMSR_G(5),VMSR(5))
       VMSR_G(6)=MIN(VMSR_G(6),VMSR(6))
+
 !$OMP END CRITICAL (I7BUCE_CRIT_REDUCTION)
 ! A barrier must be called before the first use of *_G
 C

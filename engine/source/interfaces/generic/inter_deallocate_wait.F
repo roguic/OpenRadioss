@@ -176,6 +176,10 @@ C-----------------------------------------------
 
                 IF(ALLOCATED(INTER_STRUCT(N)%CURV_MAX)) DEALLOCATE(INTER_STRUCT(N)%CURV_MAX)
                 ! -----------------------------------------------------
+                do p=1,nspmd
+                  if(allocated(sort_comm(n)%data_proc(p)%irem)) deallocate(sort_comm(n)%data_proc(p)%irem)
+                  if(allocated(sort_comm(n)%data_proc(p)%xrem)) deallocate(sort_comm(n)%data_proc(p)%xrem)
+                enddo
             ENDDO
             IF(ALLOCATED(NB_LOCAL_CELL) )DEALLOCATE( NB_LOCAL_CELL )
             IF(ALLOCATED(CELL_BOOL) )DEALLOCATE( CELL_BOOL )

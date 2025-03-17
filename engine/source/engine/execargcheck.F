@@ -75,8 +75,8 @@ C-----------------------------------------------
        CHARACTER :: LAST_LETTER,SEPARATOR
        CHARACTER(LEN=2096) ARGS2,ARGS_REDUCE,ARGP
        CHARACTER(LEN=4096) ULIBC
-       PARAMETER (LENLIST=20)
-       CHARACTER(LEN=12):: ARGLIST(LENLIST)
+       PARAMETER (LENLIST=21)
+       CHARACTER(LEN=13):: ARGLIST(LENLIST)
        EXTERNAL IARGC
        DATA ARGLIST/
      .    '-VERSION',  '-V',
@@ -91,7 +91,7 @@ C-----------------------------------------------
      .    '-INSPIRE',
      .    '-PREVIEW',
      .    '-INSPIRE_ALM','-NORST',
-     .    '-MDS_LIBPATH','-MDSDIR'/
+     .    '-MDS_LIBPATH','-MDSDIR','-NEWSORT'/
 C-----------------------------------------------
        IDUM=-1
        GOT_INPUT = 0
@@ -112,6 +112,7 @@ C-----------------------------------------------
        MDS_PATHI = 0
        MDS_DIRI = 0
        GOT_PREVIEW= 0
+       GOT_NEWSORT=0
 
        ! Initialize MDS_PATH Array
        MDS_PATH=''
@@ -213,6 +214,8 @@ C -MEM-MAP
              GOT_MEM_MAP=1
           CASE ( '-PREVIEW')  
              GOT_PREVIEW=1
+          CASE ( '-NEWSORT')  
+             GOT_NEWSORT=1
           CASE ( '-INSPIRE_ALM')
              GOT_INSPIRE_ALM=1
           CASE ( '-INSPIRE')

@@ -44,7 +44,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
      2  IRCVFROM,DT2T   ,NELTST ,ITYPTST ,ITAB   ,
      3  XSLV    ,XMSR   ,VSLV   ,VMSR    ,INTLIST,
      4  NBINTC  ,SIZE_T ,SENSOR_TAB,DELTA_PMAX_GAP,
-     5  INTBUF_TAB,DELTA_PMAX_GAP_NODE,IDEL7NOK_SAV,MAXDGAP, V )
+     5  INTBUF_TAB,DELTA_PMAX_GAP_NODE,IDEL7NOK_SAV,MAXDGAP, V)
 C-----------------------------------------------
 C   M o d u l e s
 C-----------------------------------------------
@@ -167,7 +167,7 @@ C
         CALL SPMD_SYNC_MMXG2(
      1    ISENDTO,IRCVFROM,NEWFRONT,XSLV  ,XMSR  ,
      2    VSLV   ,VMSR    ,LISTNEW ,NBNEW ,TZINF ,
-     3    SIZE_T ,IPARI , DELTA_PMAX_GAP  ,MAXDGAP)
+     3    SIZE_T ,IPARI , DELTA_PMAX_GAP  ,MAXDGAP,nspmd)
         IF (IMONM > 0) CALL STOPTIME(TIMERS,27)
       END IF
 C
@@ -498,7 +498,7 @@ C--------
 
          IF(DIST0<=ZERO.OR.KFORSMS/=0) THEN
 C DIST = -1
-           INTBUF_TAB(I)%VARIABLES(5) = -ONE
+            INTBUF_TAB(I)%VARIABLES(5) = -ONE
             IF(DEBUG(3)>=1.AND.NCYCLE/=0) THEN
               WRITE(ISTDO,'(A,I10,A,I4,A,I8,A,I4,A,I4,A,F20.10,A,F20.10,A,F20.10)') 
      .          '** NEW SORT FOR INTERFACE NUMBER ',
@@ -513,7 +513,7 @@ C DIST = -1
      .          ' AT CYCLE ',NCYCLE,' ON PROC',ISPMD+1,' I19FLAG ',IPARI(7,I),
      .          ' DIST0 ',DIST0,' TZINF ',INTBUF_TAB(I)%VARIABLES(8),' GAP ',
      .          INTBUF_TAB(I)%VARIABLES(2)
-            ENDIF
+            ENDIF        
          ENDIF
 C=======================================================================
         ENDIF

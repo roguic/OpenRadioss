@@ -30,7 +30,7 @@ C
       SUBROUTINE SPMD_SYNC_MMXG2(
      1    ISENDTO,IRCVFROM,NEWFRONT,XSLV_L,XMSR_L,
      2    VSLV_L ,VMSR_L  ,INTLIST ,NINTC ,TZINF ,
-     3    SIZE_T ,IPARI   , DELTA_PMAX_GAP,MAXDGAP       )
+     3    SIZE_T ,IPARI   , DELTA_PMAX_GAP,MAXDGAP)
 C-----------------------------------------------
 C   I m p l i c i t   T y p e s
 C-----------------------------------------------
@@ -65,9 +65,8 @@ C-----------------------------------------------
       my_real
      .        SBUF(NINTC*I_LEN), RBUF(NINTC*I_LEN)
       INTEGER :: MESSAGE_LEN
-      my_real SBUF3(NINTC), RBUF3(NINTC) 
+      my_real SBUF3(NINTC), RBUF3(NINTC)
       INTEGER SBUF2(NINTC), RBUF2(NINTC) 
-
       INTEGER :: I17 !Number of TYPE17 interface 
 
 C-----------------------------------------------
@@ -82,7 +81,6 @@ C
       LOC_PROC = ISPMD+1
       IF(IRCVFROM(NINTER+1,LOC_PROC)>0.OR.
      +   ISENDTO(NINTER+1,LOC_PROC)>0) THEN
-
 C Pack original data      
        L = 0
        DO KK=1,NINTC
@@ -159,6 +157,10 @@ C    &                   COMM_CONT, ierror)
          call MPI_AllReduce(SBUF3, RBUF3, MESSAGE_LEN, REAL , MPI_SUM,
      &                   COMM_CONT, ierror)
        ENDIF
+
+!       MPI_ALLGATHER(message_emis,longueur_message_emis,type_message_emis,
+!       message_recu,longueur_message_recu,type_message_recu,comm,code)
+
 
        L = 0
        DO KK=1,NINTC
