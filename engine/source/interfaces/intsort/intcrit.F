@@ -523,12 +523,14 @@ C--------
               xz = max(s_position(3)-m_position(6),m_position(3)-s_position(6),ZERO)
 
               if(ispmd==0) then  
-                write(700,'(a,3i10,1z20)') "MaTrIx",ncycle,ijk,kji,SQRT(XX**2+XY**2+XZ**2)
+                if(INTBUF_TAB(I)%VARIABLES(5) - SQRT(XX**2+XY**2+XZ**2)<0) then
+                  write(*,'(a,3i10)') "MaTrIx",ncycle,ijk,kji
+                endif
               endif
             enddo
 
             s_position(1:6) = all_processor_pos(13:18,I,ijk)
-            if(s_position(1)==EP30.or.my_bool) cycle
+            if(s_position(1)==EP30) then !.or.my_bool) cycle
             do kji=1,nspmd
               if(ijk==kji) then
                 s_position(1:6) = all_processor_pos(1:6,I,ijk)
@@ -537,21 +539,11 @@ C--------
                 xy = max(s_position(2)-m_position(5),m_position(2)-s_position(5),ZERO)
                 xz = max(s_position(3)-m_position(6),m_position(3)-s_position(6),ZERO)
                 if(INTBUF_TAB(I)%VARIABLES(5) - SQRT(XX**2+XY**2+XZ**2)<0) then 
-                  if(ispmd==0) print*," self inter :",ncycle,INTBUF_TAB(I)%VARIABLES(5) - SQRT(XX**2+XY**2+XZ**2)
+                  if(ispmd==0) print*," Pair inter :",ncycle,ijk,kji
                   my_bool = .true.
-                  exit
+                  !exit
                 endif
               else
-                s_position(1:6) = all_processor_pos(1:6,I,ijk)
-                m_position(1:6) = all_processor_pos(7:12,I,kji)
-                xx = max(s_position(1)-m_position(4),m_position(1)-s_position(4),ZERO)
-                xy = max(s_position(2)-m_position(5),m_position(2)-s_position(5),ZERO)
-                xz = max(s_position(3)-m_position(6),m_position(3)-s_position(6),ZERO)
-
-                if(ispmd==0) then  
-                  write(700,'(a,3i10,1z20)') "MaTrIx",ncycle,ijk,kji,SQRT(XX**2+XY**2+XZ**2)
-                endif
-
                 s_position(1:6) = all_processor_pos(13:18,I,ijk)
                 m_position(1:6) = all_processor_pos(19:24,I,kji)
                 m_position(1:3) = m_position(1:3) + INTBUF_TAB(I)%VARIABLES(5)
@@ -571,9 +563,9 @@ C--------
                       xy = max(s_position(2)-m_position(5),m_position(2)-s_position(5),ZERO)
                       xz = max(s_position(3)-m_position(6),m_position(3)-s_position(6),ZERO)
                       if(INTBUF_TAB(I)%VARIABLES(5) - SQRT(XX**2+XY**2+XZ**2)<0) then 
-                        if(ispmd==0) print*," self inter :",ncycle,INTBUF_TAB(I)%VARIABLES(5) - SQRT(XX**2+XY**2+XZ**2)
+                        if(ispmd==0) print*," Pair inter :",ncycle,ijk,kji
                         my_bool = .true.
-                        exit
+                        !exit
                       endif
 
                     endif
