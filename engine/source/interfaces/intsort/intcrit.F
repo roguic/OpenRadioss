@@ -515,16 +515,17 @@ C--------
           my_bool = .false.
           do ijk=1,nspmd
 
+            do kji=1,nspmd
+              s_position(1:6) = all_processor_pos(1:6,I,ijk)
+              m_position(1:6) = all_processor_pos(7:12,I,kji)
+              xx = max(s_position(1)-m_position(4),m_position(1)-s_position(4),ZERO)
+              xy = max(s_position(2)-m_position(5),m_position(2)-s_position(5),ZERO)
+              xz = max(s_position(3)-m_position(6),m_position(3)-s_position(6),ZERO)
 
-            s_position(1:6) = all_processor_pos(1:6,I,ijk)
-            m_position(1:6) = all_processor_pos(7:12,I,kji)
-            xx = max(s_position(1)-m_position(4),m_position(1)-s_position(4),ZERO)
-            xy = max(s_position(2)-m_position(5),m_position(2)-s_position(5),ZERO)
-            xz = max(s_position(3)-m_position(6),m_position(3)-s_position(6),ZERO)
-
-            if(ispmd==0) then  
-              write(700,'(a,3i10,1z20)') "MaTrIx",ncycle,ijk,kji,SQRT(XX**2+XY**2+XZ**2)
-            endif
+              if(ispmd==0) then  
+                write(700,'(a,3i10,1z20)') "MaTrIx",ncycle,ijk,kji,SQRT(XX**2+XY**2+XZ**2)
+              endif
+            enddo
 
             s_position(1:6) = all_processor_pos(13:18,I,ijk)
             if(s_position(1)==EP30.or.my_bool) cycle
