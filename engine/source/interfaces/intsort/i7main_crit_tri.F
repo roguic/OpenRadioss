@@ -32,7 +32,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
       SUBROUTINE I7MAIN_CRIT_TRI(
      1  IPARI  ,X      ,NIN    ,
      2  ITASK  ,V      ,XSLV_L ,XMSR_L ,VSLV_L ,
-     3  VMSR_L ,INTBUF_TAB  )
+     3  VMSR_L ,INTBUF_TAB  ,processor_pos)
 C============================================================================
 C   M o d u l e s
 C-----------------------------------------------
@@ -56,6 +56,7 @@ C     REAL
       my_real 
      .   X(3,*), V(3,*),
      .   XSLV_L(*), XMSR_L(*), VSLV_L(*), VMSR_L(*)
+      my_real, dimension(12), intent(inout) :: processor_pos
 
       TYPE(INTBUF_STRUCT_) INTBUF_TAB
 C-----------------------------------------------
@@ -82,7 +83,7 @@ C test temporaire pour assurer la compatibilite restart en 51d et 51e
        CALL I7BUCE_CRIT(
      1  X            ,INTBUF_TAB%NSV ,INTBUF_TAB%MSR,NSN   ,NMN  ,
      2  ITASK        ,INTBUF_TAB%XSAV,NIN          ,INTBUF_TAB%STFNS,V ,
-     3  XSLV_L       ,XMSR_L         ,VSLV_L         ,VMSR_L       )
+     3  XSLV_L       ,XMSR_L         ,VSLV_L         ,VMSR_L       ,processor_pos)
 C
       RETURN
       END

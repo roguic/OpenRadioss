@@ -44,7 +44,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
      2  IRCVFROM,DT2T   ,NELTST ,ITYPTST ,ITAB   ,
      3  XSLV    ,XMSR   ,VSLV   ,VMSR    ,INTLIST,
      4  NBINTC  ,SIZE_T ,SENSOR_TAB,DELTA_PMAX_GAP,
-     5  INTBUF_TAB,DELTA_PMAX_GAP_NODE,IDEL7NOK_SAV,MAXDGAP, V )
+     5  INTBUF_TAB,DELTA_PMAX_GAP_NODE,IDEL7NOK_SAV,MAXDGAP, V,processor_pos )
 C-----------------------------------------------
 C   M o d u l e s
 C-----------------------------------------------
@@ -85,6 +85,7 @@ C-----------------------------------------------
 
       TYPE(INTBUF_STRUCT_) INTBUF_TAB(*)
       TYPE (SENSOR_STR_) ,DIMENSION(NSENSOR) ,INTENT(IN) :: SENSOR_TAB
+      my_real, dimension(12,ninter), intent(in) :: processor_pos
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
@@ -99,6 +100,10 @@ C-----------------------------------------------
      .        MARGE0,TZINF(NBINTC),CRITERL(NBINTC),TS     ,
      .        XXP,XYP,XZP,XXG,XYG,XZG,D0,D1,D2,D3,D4,D5,D6,D7,D8,
      .        DELTA_PMAX_GAP_SAV(NINTER)
+      my_real, dimension(:,:,:), allocatable :: all_processor_pos
+      LOGICAL :: my_bool
+      INTEGER :: IJK,KJI,JKI
+      my_real, dimension(6) :: s_position, m_position
 C-----------------------------------------------
 C   F u n c t i o n s
 C-----------------------------------------------
@@ -107,6 +112,8 @@ C-----------------------------------------------
           DELTA_PMAX_GAP_NOD=0
       ENDIF
       FORCE_COMPUTATION(1:NINTER) = .FALSE.
+
+      allocate( all_processor_pos(24,NINTER,NSPMD) )
 C
 C Precalcul des interfaces utiles
 C
@@ -167,8 +174,15 @@ C
         CALL SPMD_SYNC_MMXG2(
      1    ISENDTO,IRCVFROM,NEWFRONT,XSLV  ,XMSR  ,
      2    VSLV   ,VMSR    ,LISTNEW ,NBNEW ,TZINF ,
-     3    SIZE_T ,IPARI , DELTA_PMAX_GAP  ,MAXDGAP)
+     3    SIZE_T ,IPARI , DELTA_PMAX_GAP  ,MAXDGAP,nspmd,processor_pos,all_processor_pos)
         IF (IMONM > 0) CALL STOPTIME(TIMERS,27)
+      else
+       do kk=1,NBNEW
+          I = LISTNEW(KK)
+          all_processor_pos(1:6,I,1) = XSLV(1:6,I)
+          all_processor_pos(7:12,I,1) = XMSR(1:6,I)
+          all_processor_pos(13:24,i,1) = processor_pos(1:12,i)
+       enddo
       END IF
 C
       DO KK=1,NBNEW
@@ -497,7 +511,81 @@ C
 C--------
 
          IF(DIST0<=ZERO.OR.KFORSMS/=0) THEN
+          if(nty==7) then
+          my_bool = .false.
+          do ijk=1,nspmd
+
+
+            s_position(1:6) = all_processor_pos(1:6,I,ijk)
+            m_position(1:6) = all_processor_pos(7:12,I,kji)
+            xx = max(s_position(1)-m_position(4),m_position(1)-s_position(4),ZERO)
+            xy = max(s_position(2)-m_position(5),m_position(2)-s_position(5),ZERO)
+            xz = max(s_position(3)-m_position(6),m_position(3)-s_position(6),ZERO)
+
+            if(ispmd==0) then  
+              write(700,'(a,3i10,1z20)') "MaTrIx",ncycle,ijk,kji,SQRT(XX**2+XY**2+XZ**2)
+            endif
+
+            s_position(1:6) = all_processor_pos(13:18,I,ijk)
+            if(s_position(1)==EP30.or.my_bool) cycle
+            do kji=1,nspmd
+              if(ijk==kji) then
+                s_position(1:6) = all_processor_pos(1:6,I,ijk)
+                m_position(1:6) = all_processor_pos(7:12,I,kji)
+                xx = max(s_position(1)-m_position(4),m_position(1)-s_position(4),ZERO)
+                xy = max(s_position(2)-m_position(5),m_position(2)-s_position(5),ZERO)
+                xz = max(s_position(3)-m_position(6),m_position(3)-s_position(6),ZERO)
+                if(INTBUF_TAB(I)%VARIABLES(5) - SQRT(XX**2+XY**2+XZ**2)<0) then 
+                  if(ispmd==0) print*," self inter :",ncycle,INTBUF_TAB(I)%VARIABLES(5) - SQRT(XX**2+XY**2+XZ**2)
+                  my_bool = .true.
+                  exit
+                endif
+              else
+                s_position(1:6) = all_processor_pos(1:6,I,ijk)
+                m_position(1:6) = all_processor_pos(7:12,I,kji)
+                xx = max(s_position(1)-m_position(4),m_position(1)-s_position(4),ZERO)
+                xy = max(s_position(2)-m_position(5),m_position(2)-s_position(5),ZERO)
+                xz = max(s_position(3)-m_position(6),m_position(3)-s_position(6),ZERO)
+
+                if(ispmd==0) then  
+                  write(700,'(a,3i10,1z20)') "MaTrIx",ncycle,ijk,kji,SQRT(XX**2+XY**2+XZ**2)
+                endif
+
+                s_position(1:6) = all_processor_pos(13:18,I,ijk)
+                m_position(1:6) = all_processor_pos(19:24,I,kji)
+                m_position(1:3) = m_position(1:3) + INTBUF_TAB(I)%VARIABLES(5)
+                m_position(4:6) = m_position(4:6) - INTBUF_TAB(I)%VARIABLES(5)
+                if(s_position(1) > m_position(1+3) .and. s_position(1+3) < m_position(1)) then
+                  if((s_position(2) > m_position(2+3) .and. s_position(2+3) < m_position(2))) then
+                    if((s_position(3) > m_position(3+3) .and. s_position(3+3) < m_position(3))) then
+                      if(ispmd==0) then
+                        print*,"intersection",ncycle,ijk,kji
+                        print*," marge ",ncycle,INTBUF_TAB(I)%VARIABLES(5)
+                        print*,"intersection S",ncycle,s_position(1:6)
+                        print*,"intersection M",ncycle,all_processor_pos(19:24,I,kji)
+                      endif
+                      s_position(1:6) = all_processor_pos(1:6,I,ijk)
+                      m_position(1:6) = all_processor_pos(7:12,I,kji)
+                      xx = max(s_position(1)-m_position(4),m_position(1)-s_position(4),ZERO)
+                      xy = max(s_position(2)-m_position(5),m_position(2)-s_position(5),ZERO)
+                      xz = max(s_position(3)-m_position(6),m_position(3)-s_position(6),ZERO)
+                      if(INTBUF_TAB(I)%VARIABLES(5) - SQRT(XX**2+XY**2+XZ**2)<0) then 
+                        if(ispmd==0) print*," self inter :",ncycle,INTBUF_TAB(I)%VARIABLES(5) - SQRT(XX**2+XY**2+XZ**2)
+                        my_bool = .true.
+                        exit
+                      endif
+
+                    endif
+                  endif
+                endif
+              endif
+            enddo
+          enddo
+
+          if(ispmd==0) print*,'my_bool',ncycle,my_bool 
+          endif
 C DIST = -1
+          if(my_bool) then
            INTBUF_TAB(I)%VARIABLES(5) = -ONE
             IF(DEBUG(3)>=1.AND.NCYCLE/=0) THEN
               WRITE(ISTDO,'(A,I10,A,I4,A,I8,A,I4,A,I4,A,F20.10,A,F20.10,A,F20.10)') 
@@ -514,10 +602,12 @@ C DIST = -1
      .          ' DIST0 ',DIST0,' TZINF ',INTBUF_TAB(I)%VARIABLES(8),' GAP ',
      .          INTBUF_TAB(I)%VARIABLES(2)
             ENDIF
+          endif
          ENDIF
 C=======================================================================
         ENDIF
       ENDDO
 C
+      deallocate( all_processor_pos )
       RETURN
       END

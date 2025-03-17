@@ -28,7 +28,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
        SUBROUTINE I7BUCE_CRIT(
      1       X       ,NSV   ,MSR   ,NSN   ,NMN     ,
      2       ITASK   ,XSAV  ,NIN   ,STFN  ,V       ,
-     3       XSLV_G  ,XMSR_G,VSLV_G,VMSR_G         )
+     3       XSLV_G  ,XMSR_G,VSLV_G,VMSR_G         ,processor_pos)
 C-----------------------------------------------
 C   I m p l i c i t   T y p e s 
 C-----------------------------------------------
@@ -48,12 +48,13 @@ C-----------------------------------------------
       my_real
      .   X(3,*), V(3,*), XSAV(3,*), STFN(*),
      .   XSLV_G(*),XMSR_G(*), VSLV_G(*), VMSR_G(*)
+      my_real, dimension(12), intent(inout) :: processor_pos
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER NSNF,NMNF,NSNL,NMNL,I, J, II, N
       my_real
-     .   XSLV(6),XMSR(6), VSLV(6), VMSR(6)
+     .   XSLV(6),XMSR(6), VSLV(6), VMSR(6),local_processor_pos(12)
 C-----------------------------------------------
 C   S o u r c e  L i n e s
 C-----------------------------------------------
@@ -70,6 +71,10 @@ C
         VSLV(3+I) = EP30
         VMSR(I)   = -EP30
         VMSR(3+I) = EP30
+        local_processor_pos(1:3) = -EP30
+        local_processor_pos(4:6) = EP30
+        local_processor_pos(7:9) = -EP30
+        local_processor_pos(10:12) = EP30
       END DO
       NSNF = 1 + ITASK*NSN / NTHREAD 
       NSNL = (ITASK+1)*NSN / NTHREAD
@@ -100,6 +105,13 @@ C
             VSLV(5)=MIN(VSLV(5),V(2,J))
             VSLV(6)=MIN(VSLV(6),V(3,J))
 
+            local_processor_pos(1)=MAX(local_processor_pos(1),X(1,J))
+            local_processor_pos(2)=MAX(local_processor_pos(2),X(2,J))
+            local_processor_pos(3)=MAX(local_processor_pos(3),X(3,J))
+            local_processor_pos(4)=MIN(local_processor_pos(4),X(1,J))
+            local_processor_pos(5)=MIN(local_processor_pos(5),X(2,J))
+            local_processor_pos(6)=MIN(local_processor_pos(6),X(3,J))
+
           ENDIF
         END DO
 !$OMP END DO NOWAIT
@@ -122,6 +134,13 @@ C
             VMSR(4)=MIN(VMSR(4),V(1,J))
             VMSR(5)=MIN(VMSR(5),V(2,J))
             VMSR(6)=MIN(VMSR(6),V(3,J))
+
+            local_processor_pos(7)=MAX(local_processor_pos(7),X(1,J))
+            local_processor_pos(8)=MAX(local_processor_pos(8),X(2,J))
+            local_processor_pos(9)=MAX(local_processor_pos(9),X(3,J))
+            local_processor_pos(10)=MIN(local_processor_pos(10),X(1,J))
+            local_processor_pos(11)=MIN(local_processor_pos(11),X(2,J))
+            local_processor_pos(12)=MIN(local_processor_pos(12),X(3,J))
           ENDIF
         END DO
 !$OMP END DO NOWAIT
@@ -146,6 +165,13 @@ C
             VSLV(5)=MIN(VSLV(5),V(2,J))
             VSLV(6)=MIN(VSLV(6),V(3,J))
 
+            local_processor_pos(1)=MAX(local_processor_pos(1),X(1,J))
+            local_processor_pos(2)=MAX(local_processor_pos(2),X(2,J))
+            local_processor_pos(3)=MAX(local_processor_pos(3),X(3,J))
+            local_processor_pos(4)=MIN(local_processor_pos(4),X(1,J))
+            local_processor_pos(5)=MIN(local_processor_pos(5),X(2,J))
+            local_processor_pos(6)=MIN(local_processor_pos(6),X(3,J))
+
           ENDIF
         END DO
 !$OMP END DO NOWAIT
@@ -167,6 +193,13 @@ C
             VMSR(4)=MIN(VMSR(4),V(1,J))
             VMSR(5)=MIN(VMSR(5),V(2,J))
             VMSR(6)=MIN(VMSR(6),V(3,J))
+
+            local_processor_pos(7)=MAX(local_processor_pos(7),X(1,J))
+            local_processor_pos(8)=MAX(local_processor_pos(8),X(2,J))
+            local_processor_pos(9)=MAX(local_processor_pos(9),X(3,J))
+            local_processor_pos(10)=MIN(local_processor_pos(10),X(1,J))
+            local_processor_pos(11)=MIN(local_processor_pos(11),X(2,J))
+            local_processor_pos(12)=MIN(local_processor_pos(12),X(3,J))
           ENDIF
         ENDDO
 !$OMP END DO NOWAIT
@@ -208,6 +241,21 @@ C
       VMSR_G(4)=MIN(VMSR_G(4),VMSR(4))
       VMSR_G(5)=MIN(VMSR_G(5),VMSR(5))
       VMSR_G(6)=MIN(VMSR_G(6),VMSR(6))
+
+      processor_pos(1)=MAX(processor_pos(1),local_processor_pos(1))
+      processor_pos(2)=MAX(processor_pos(2),local_processor_pos(2))
+      processor_pos(3)=MAX(processor_pos(3),local_processor_pos(3))
+      processor_pos(4)=MIN(processor_pos(4),local_processor_pos(4))
+      processor_pos(5)=MIN(processor_pos(5),local_processor_pos(5))
+      processor_pos(6)=MIN(processor_pos(6),local_processor_pos(6))
+
+      processor_pos(7)=MAX(processor_pos(7),local_processor_pos(7))
+      processor_pos(8)=MAX(processor_pos(8),local_processor_pos(8))
+      processor_pos(9)=MAX(processor_pos(9),local_processor_pos(9))
+      processor_pos(10)=MIN(processor_pos(10),local_processor_pos(10))
+      processor_pos(11)=MIN(processor_pos(11),local_processor_pos(11))
+      processor_pos(12)=MIN(processor_pos(12),local_processor_pos(12))
+
 !$OMP END CRITICAL (I7BUCE_CRIT_REDUCTION)
 ! A barrier must be called before the first use of *_G
 C

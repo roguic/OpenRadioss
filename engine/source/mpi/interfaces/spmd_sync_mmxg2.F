@@ -30,7 +30,7 @@ C
       SUBROUTINE SPMD_SYNC_MMXG2(
      1    ISENDTO,IRCVFROM,NEWFRONT,XSLV_L,XMSR_L,
      2    VSLV_L ,VMSR_L  ,INTLIST ,NINTC ,TZINF ,
-     3    SIZE_T ,IPARI   , DELTA_PMAX_GAP,MAXDGAP       )
+     3    SIZE_T ,IPARI   , DELTA_PMAX_GAP,MAXDGAP,nspmd,processor_pos,all_processor_pos       )
 C-----------------------------------------------
 C   I m p l i c i t   T y p e s
 C-----------------------------------------------
@@ -54,6 +54,9 @@ C-----------------------------------------------
      .        XSLV_L(18,*), XMSR_L(12,*), VSLV_L(6,*),
      .        VMSR_L(6,*), TZINF(*), SIZE_T(*),DELTA_PMAX_GAP(*),
      .        MAXDGAP(NINTER)
+      integer, intent(in) :: nspmd !< total number of processors
+      my_real, dimension(12,ninter), intent(in) :: processor_pos
+      my_real, dimension(24,ninter,nspmd), intent(inout) :: all_processor_pos
 C-----------------------------------------------
 C   L o c a l  V a r i a b l e s
 C-----------------------------------------------
@@ -65,9 +68,9 @@ C-----------------------------------------------
       my_real
      .        SBUF(NINTC*I_LEN), RBUF(NINTC*I_LEN)
       INTEGER :: MESSAGE_LEN
-      my_real SBUF3(NINTC), RBUF3(NINTC) 
+      my_real SBUF3(NINTC), RBUF3(NINTC)
       INTEGER SBUF2(NINTC), RBUF2(NINTC) 
-
+      my_real, dimension(24,ninter) :: s_processor_pos
       INTEGER :: I17 !Number of TYPE17 interface 
 
 C-----------------------------------------------
@@ -82,11 +85,21 @@ C
       LOC_PROC = ISPMD+1
       IF(IRCVFROM(NINTER+1,LOC_PROC)>0.OR.
      +   ISENDTO(NINTER+1,LOC_PROC)>0) THEN
-
+      s_processor_pos(1:3,1:ninter) = -EP30
+      s_processor_pos(4:6,1:ninter) = EP30
+      s_processor_pos(7:9,1:ninter) =-EP30
+      s_processor_pos(10:12,1:ninter) = EP30
+      s_processor_pos(13:15,1:ninter) =-EP30
+      s_processor_pos(16:18,1:ninter) = EP30
+      s_processor_pos(19:21,1:ninter) =-EP30
+      s_processor_pos(22:24,1:ninter) = EP30
 C Pack original data      
        L = 0
        DO KK=1,NINTC
         NIN = INTLIST(KK)
+        s_processor_pos(1:6,nin) = XSLV_L(1:6,NIN)
+        s_processor_pos(7:12,nin) = XMSR_L(1:6,NIN)
+        s_processor_pos(13:24,nin) = processor_pos(1:12,nin)
 C X MIN/MAX
         DO J=1,18
           IF(MOD((J-1)/3,2) == 0) THEN
@@ -159,6 +172,11 @@ C    &                   COMM_CONT, ierror)
          call MPI_AllReduce(SBUF3, RBUF3, MESSAGE_LEN, REAL , MPI_SUM,
      &                   COMM_CONT, ierror)
        ENDIF
+
+       call mpi_allgather(s_processor_pos,24*ninter,REAL,all_processor_pos,24*ninter,REAL,COMM_CONT,ierror)
+!       MPI_ALLGATHER(message_emis,longueur_message_emis,type_message_emis,
+!       message_recu,longueur_message_recu,type_message_recu,comm,code)
+
 
        L = 0
        DO KK=1,NINTC

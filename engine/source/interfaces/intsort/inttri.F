@@ -251,11 +251,13 @@ C-----------------------------------------------
       INTEGER :: NB_INTER_SORTED        !   number of interfaces that need to be sorted
       INTEGER, DIMENSION(NBINTC) :: LIST_INTER_SORTED   !   list of interfaces that need to be sorted
       INTEGER :: NTY
+      my_real, dimension(:,:), allocatable :: processor_pos
 C-----------------------------------------------
       NSENSOR = SENSORS%NSENSOR
 C Single region
       I_MEM = 0
 !$OMP SINGLE
+      allocate( processor_pos(12,ninter))
       DELTA_PMAX_GAP_NODE(1:NINTER)=0
 
       IF (IMONM > 0) THEN
@@ -318,6 +320,7 @@ C Single region
         VMSR(6,N)= EP30
         SIZE_T(N)=ZERO  
         DELTA_PMAX_DGAP(N)=ZERO    
+        processor_pos(:,n) = zero
       END DO
       ! idem pour interface 21
       DO KK=1,NINTSTAMP
@@ -473,7 +476,7 @@ C-----------------------------------------------
        CALL I7MAIN_CRIT_TRI(
      1      IPARI ,PTR_X        ,N        ,
      2      ITASK ,PTR_V        ,XSLV(1,N)    ,XMSR(1,N),VSLV(1,N),
-     3      VMSR(1,N),INTBUF_TAB(N))
+     3      VMSR(1,N),INTBUF_TAB(N),processor_pos(1,n))
 
 C-----------------------------------------------
         ELSEIF(NTY == 24.AND.TT>=TS)THEN
@@ -644,7 +647,7 @@ C
      2    IRECVFROM ,DT2T    ,NELTST  ,ITYPTST  ,ITAB      ,
      3    XSLV      ,XMSR    ,VSLV    ,VMSR     ,INTLIST   ,
      4    NBINTC    ,SIZE_T  ,SENSORS%SENSOR_TAB,DELTA_PMAX_GAP,
-     5    INTBUF_TAB,DELTA_PMAX_GAP_NODE,IDEL7NOK_SAV,MAXDGAP,V)
+     5    INTBUF_TAB,DELTA_PMAX_GAP_NODE,IDEL7NOK_SAV,MAXDGAP,V,processor_pos)
 
 
 C
@@ -1617,6 +1620,7 @@ C Fin Partie non parallele
       ENDIF
 
       DEALLOCATE(X_IGE,V_IGE)
+      deallocate( processor_pos )
 !$OMP END SINGLE
 
       RETURN
