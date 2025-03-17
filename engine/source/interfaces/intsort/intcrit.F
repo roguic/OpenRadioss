@@ -516,6 +516,7 @@ C--------
           do ijk=1,nspmd
 
             do kji=1,nspmd
+              ifall_processor_pos(13,I,ijk)==EP30) cycle
               s_position(1:6) = all_processor_pos(1:6,I,ijk)
               m_position(1:6) = all_processor_pos(7:12,I,kji)
               xx = max(s_position(1)-m_position(4),m_position(1)-s_position(4),ZERO)
@@ -530,7 +531,7 @@ C--------
             enddo
 
             s_position(1:6) = all_processor_pos(13:18,I,ijk)
-            if(s_position(1)==EP30) then !.or.my_bool) cycle
+            if(s_position(1)==EP30) cycle !.or.my_bool) cycle
             do kji=1,nspmd
               if(ijk==kji) then
                 s_position(1:6) = all_processor_pos(1:6,I,ijk)
