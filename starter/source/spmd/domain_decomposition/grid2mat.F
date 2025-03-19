@@ -1561,12 +1561,9 @@ C sorting of NELEMINT : negative value for IXINT(6) means that distance is small
         ENDDO
          CALL MY_ORDERS(0,WORK,ISORT,INDEX_SORT,NELEMINT,1)
 
-
-C
-C   hierarchy : type 2 before, contact now
-        DO II = 1, NELEMINT
+         DO II = 1, NELEMINT
           I = INDEX_SORT(II)
-          N=INTER_CAND%IXINT(5,I)
+          N=INTER_CAND%IXINT(5,I) ! noeud S
           IF (N<=NUMNOD) THEN  !  POUR LES ELEMENTS ISOGEOMETRIQUES (PARTIE FICTIVE A NE PAS CONSIDERER)
             NUMG1=-1
 C searching for the first connected element not seen
@@ -1574,7 +1571,7 @@ C searching for the first connected element not seen
             DO I1 = ADSKY(N), ADSKY(N+1)-1
               NUMG3=ABS(CNE(I1))
               IF(CEP_MIN > CEP(NUMG3)) THEN
-                NUMG1 = NUMG3 
+                NUMG1 = NUMG3 ! noeud S
                 CEP_MIN = CEP(NUMG1)
               ENDIF
               IF(CEP_MIN == 0) EXIT
@@ -1584,13 +1581,13 @@ C   initialisation numg2 pour cas ou facette non trouvee (erreur)
             ITYPINT=ABS(INTER_CAND%IXINT(6,I))
             IF(ITYPINT==7) THEN
              IF(ADSKY(N+1)-ADSKY(N)>0)THEN
-              N=INTER_CAND%IXINT(1,I)
-              N1=INTER_CAND%IXINT(2,I)
-              N2=INTER_CAND%IXINT(3,I)
+              N=INTER_CAND%IXINT(1,I) ! noeud M 1
+              N1=INTER_CAND%IXINT(2,I)! noeud M 2
+              N2=INTER_CAND%IXINT(3,I)! noeud M 3
               IF (N<=NUMNOD) THEN !  POUR LES ELEMENTS ISOGEOMETRIQUES (PARTIE FICTIVE A NE PAS CONSIDERER)
                DO I1 = ADSKY(N), ADSKY(N+1)-1
                  NUMG2=ABS(CNE(I1))
-                 IF(NUMG2 == NUMG1) THEN
+                 IF(NUMG2 == NUMG1) THEN ! elem S = elem M
                    GOTO 107
 ! Avoid adding edges between element already connected
                  ELSE
@@ -1611,7 +1608,7 @@ C   initialisation numg2 pour cas ou facette non trouvee (erreur)
  107          CONTINUE
 
               IF(NUMG1 /= NUMG2 .AND. (NUMG1 >0 ) .AND. (NUMG2 > 0)) THEN
-                IF(CEP(NUMG1)==0.OR.CEP(NUMG2)==0) THEN
+                IF(CEP(NUMG1)==0.AND.CEP(NUMG2)==0) THEN
                   number_of_added_edges = number_of_added_edges + 1
 C test to limit number of edges added for contact interfaces
                   CALL IDDCONNECTPLUS(NUMG1,NUMG2,NELEM)
@@ -1639,7 +1636,31 @@ C 5:1 ratio between potential impact and just candidat
               END IF
 
              ENDIF
-            ELSEIF(ITYPINT==11) THEN
+            ENDIF
+          ENDIF ! si element isogeometrique
+        ENDDO
+
+C
+C   hierarchy : type 2 before, contact now
+        DO II = 1, NELEMINT
+          I = INDEX_SORT(II)
+          N=INTER_CAND%IXINT(5,I)
+          IF (N<=NUMNOD) THEN  !  POUR LES ELEMENTS ISOGEOMETRIQUES (PARTIE FICTIVE A NE PAS CONSIDERER)
+            NUMG1=-1
+C searching for the first connected element not seen
+            CEP_MIN = HUGE(CEP_MIN)
+            DO I1 = ADSKY(N), ADSKY(N+1)-1
+              NUMG3=ABS(CNE(I1))
+              IF(CEP_MIN > CEP(NUMG3)) THEN
+                NUMG1 = NUMG3 
+                CEP_MIN = CEP(NUMG1)
+              ENDIF
+              IF(CEP_MIN == 0) EXIT
+            END DO
+C   initialisation numg2 pour cas ou facette non trouvee (erreur)
+            NUMG2=-1
+            ITYPINT=ABS(INTER_CAND%IXINT(6,I))
+            IF(ITYPINT==11) THEN
              IF(ADSKY(N+1)-ADSKY(N)>0)THEN
               N1=INTER_CAND%IXINT(3,I)
               N2=INTER_CAND%IXINT(4,I)
@@ -2024,6 +2045,7 @@ c         END DO
 C        OPTIONS(METIS_OPTION_NUMBERING) = 1 ! Fortran numbering -- position 17 en 5.0.2 et 18 en 5.1
 
          OPTIONS(18)=1
+         options(12) = 1
 !         OPTIONS(8) = 3  ! METIS NCUTS options
 
 C        OPTIONS(METIS OPTION CONTIG) = 1 ! Option for contiguous sub domains
