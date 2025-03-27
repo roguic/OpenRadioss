@@ -198,17 +198,17 @@ C
 
 
 
-     FIELDS(1) = 151 ; TITLES(FIELDS(1)) = '151' 
-     FIELDS(2) = 152 ; TITLES(FIELDS(2)) = '152' 
-     FIELDS(3) = 153 ; TITLES(FIELDS(3)) = '153 ' 
-     FIELDS(4) = 154 ; TITLES(FIELDS(4)) = '154' 
-     FIELDS(5) = 155 ; TITLES(FIELDS(5)) = '155' 
-     FIELDS(6) = 156 ; TITLES(FIELDS(6)) = '156' 
+          FIELDS(1) = 151 ; TITLES(FIELDS(1)) = '151' 
+          FIELDS(2) = 152 ; TITLES(FIELDS(2)) = '152' 
+          FIELDS(3) = 153 ; TITLES(FIELDS(3)) = '153 ' 
+          FIELDS(4) = 154 ; TITLES(FIELDS(4)) = '154' 
+          FIELDS(5) = 155 ; TITLES(FIELDS(5)) = '155' 
+          FIELDS(6) = 156 ; TITLES(FIELDS(6)) = '156' 
 
-     NFIELDS = 6
-     
-     CALL PRINT_BLOCK("** INTERFACE TIME 2 **",TABTIME,NTIMAX,
-.                        FLAG,OUT_ID,NFIELDS,FIELDS,TITLES)
+          NFIELDS = 6
+          
+          CALL PRINT_BLOCK("** INTERFACE TIME 2 **",TABTIME,NTIMAX,
+     .                        FLAG,OUT_ID,NFIELDS,FIELDS,TITLES)
             
             FIELDS(1 )=21    ; TITLES(FIELDS(1 )) = 'FICOM1'
             FIELDS(2 )=22    ; TITLES(FIELDS(2 )) = 'FICOM2'

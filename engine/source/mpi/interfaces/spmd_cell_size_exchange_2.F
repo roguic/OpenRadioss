@@ -36,7 +36,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
       !||====================================================================
         SUBROUTINE SPMD_CELL_SIZE_EXCHANGE_2(IRCVFROM,ISENDTO,WEIGHT,
      .                    IAD_ELEM,FR_ELEM,X,V,MS,TEMP,KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI,NIN,REMOTE_PROC_ID,
-     .                    ALREADY_SEND,INDEX_ALREADY_SEND,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZE,TIMERS)
+     .                    ALREADY_SEND,INDEX_ALREADY_SEND,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZE)
 !$COMMENT
 !       SPMD_CELL_SIZE_EXCHANGE description :
 !       check if the remote processor need some secondary nodes
@@ -78,7 +78,6 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-        TYPE(TIMER_), INTENT(inout) :: TIMERS
         INTEGER, INTENT(in) :: NIN
         INTEGER,INTENT(in) :: REMOTE_PROC_ID
         INTEGER, INTENT(in) :: NODNX_SMS_SIZ ! size of NODNX_SMS

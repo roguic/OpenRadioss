@@ -37,7 +37,7 @@
         SUBROUTINE SPMD_CELL_LIST_EXCHANGE_2(IRCVFROM,ISENDTO,MODE,WEIGHT,IAD_ELEM, 
      .             FR_ELEM,X,V,MS,TEMP, 
      .             KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI, 
-     .             NIN,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZE)!, GOT_PREVIEW)
+     .             NIN,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZE,TIMERS)!, GOT_PREVIEW)
 !$COMMENT
 !       SPMD_CELL_LIST_EXCHANGE description :
 !       exchange of remote cell and preparation of comm "send/rcv the data of remote nodes"
@@ -78,6 +78,7 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
+          type(timer_) :: TIMERS
         INTEGER, INTENT(in) :: NIN
         INTEGER, INTENT(in) :: MODE
         INTEGER, INTENT(in) :: NODNX_SMS_SIZ ! size of NODNX_SMS
@@ -291,12 +292,12 @@
                 if(id_proc==loc_proc) is_exchange_needed=.false.
                 if(nb_remote_m_cell==0) is_exchange_needed=.false.
                 if(is_exchange_needed) then
-                  IF(ITASK == 0) CALL STARTIME(TIMERS,156)
+                  CALL STARTIME(TIMERS,156)
                   !   prepare the S buffer of secondary nodes (x, v, temp ...)
                   CALL SPMD_CELL_SIZE_EXCHANGE_2(IRCVFROM,ISENDTO,WEIGHT,
      .              IAD_ELEM,FR_ELEM,X,V,MS,TEMP,KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI,NIN,index_proc,
      .              ALREADY_SEND,INDEX_ALREADY_SEND,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZE)
-                  IF(ITASK == 0) CALL STOPTIME(TIMERS,156)
+                  CALL STOPTIME(TIMERS,156)
                 endif
           
             endif
