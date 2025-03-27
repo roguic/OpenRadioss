@@ -123,7 +123,7 @@
       !||====================================================================
       module timer_mod
         implicit none
-        integer, parameter :: max_nb_timer= 150
+        integer, parameter :: max_nb_timer= 250
         integer, parameter :: TIMER_RESOL     =     1
         integer, parameter :: TIMER_CONTSORT  =     2
         integer, parameter :: TIMER_ELEMENT   =     3

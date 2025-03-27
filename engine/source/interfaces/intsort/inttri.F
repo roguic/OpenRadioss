@@ -723,7 +723,7 @@ C Fin Partie non parallele smt
      .                               IPARI,IAD_ELEM,FR_ELEM,X,V,
      .                               MS,TEMP,KINET,NODNX_SMS,ITAB,
      .                               WEIGHT,INTBUF_TAB,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,
-     .                               TEMP_SIZ )
+     .                               TEMP_SIZ ,TIMERS)
             ! -----------
             ! sorting computation
             CALL INTER_SORT(TIMERS, ITASK,NB_INTER_SORTED,LIST_INTER_SORTED,RETRI,IPARI,
