@@ -50,7 +50,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
      .                                 IPARI,IAD_ELEM,FR_ELEM,X,V,
      .                                 MS,TEMP,KINET,NODNX_SMS,ITAB,
      .                                 WEIGHT,INTBUF_TAB,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,
-     .                                 TEMP_SIZ )
+     .                                 TEMP_SIZ ,TIMERS)
 
 !$COMMENT
 !       INTER_PREPARE_SORT description
@@ -78,7 +78,7 @@ C-----------------------------------------------
         USE FILL_VOXEL_MOD                                                  
         USE VOXEL_DIMENSIONS_MOD, ONLY : COMPUTE_VOXEL_DIMENSIONS
         USE COMMAND_LINE_ARGS_MOD, ONLY : GOT_PREVIEW,GOT_NEWSORT
-
+        USE TIMER_MOD
 C-----------------------------------------------
 C   I m p l i c i t   T y p e s
 C-----------------------------------------------
@@ -93,6 +93,7 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
+        TYPE(TIMER_), INTENT(inout) :: TIMERS
         INTEGER, INTENT(in) :: ITASK    !   omp thread ID
         INTEGER, INTENT(in) :: NB_INTER_SORTED        !   number of interfaces that need to be sorted
         INTEGER, INTENT(in) :: NODNX_SMS_SIZ! size of NODNX_SMS
@@ -355,7 +356,7 @@ C-----------------------------------------------
 !        box_limit(5) = global_box(2,2)
 !        box_limit(3) = global_box(3,1)
 !        box_limit(6) = global_box(3,2)
-
+        IF(ITASK == 0) CALL STARTIME(TIMERS,151)
         ! -----------------------------
         ! compute the min/max position 
         IF(NB_INTER_SORTED>0) THEN
@@ -393,7 +394,8 @@ C-----------------------------------------------
           CALL MY_BARRIER()
       ENDIF
       ! -----------------------------
-
+      IF(ITASK == 0) CALL stoptime(TIMERS,151)
+      IF(ITASK == 0) CALL STARTIME(TIMERS,152)
         ! -----------------------------
         ! color the voxel (fine grid)
         IF(NB_INTER_SORTED>0) THEN
@@ -408,36 +410,44 @@ C-----------------------------------------------
         ENDIF
         ! -----------------------------
         CALL MY_BARRIER()
+        IF(ITASK == 0) CALL stoptime(TIMERS,152)
+
         IF(NEED_TO_SORT>0)THEN
           IF(NSPMD > 1 .AND. ITASK == 0) THEN
-        ! -----------------------------
+            IF(ITASK == 0) CALL STARTIME(TIMERS,153)
+            ! -----------------------------
             DO KK=1,NB_INTER_SORTED
               N = LIST_INTER_SORTED(KK)
               ! -----------------------------
                       CALL SPMD_CELL_LIST_EXCHANGE_2(IRECVFROM,ISENDTO,1,WEIGHT,IAD_ELEM,
      .                   FR_ELEM,X,V,MS,TEMP,
      .                   KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI,
-     .                   N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ)!, GOT_PREVIEW)   !   size of cell list
+     .                   N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ,TIMERS)!, GOT_PREVIEW)   !   size of cell list
               ! -----------------------------
             enddo
+            IF(ITASK == 0) CALL stoptime(TIMERS,153)
+            IF(ITASK == 0) CALL STARTIME(TIMERS,154)
             DO KK=1,NB_INTER_SORTED
               N = LIST_INTER_SORTED(KK)
               ! -----------------------------
                       CALL SPMD_CELL_LIST_EXCHANGE_2(IRECVFROM,ISENDTO,2,WEIGHT,IAD_ELEM,
      .                   FR_ELEM,X,V,MS,TEMP,
      .                   KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI,
-     .                   N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ)!, GOT_PREVIEW)   !   size of cell list
+     .                   N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ,TIMERS)!, GOT_PREVIEW)   !   size of cell list
               ! -----------------------------
             enddo
+            IF(ITASK == 0) CALL stoptime(TIMERS,154)
+            IF(ITASK == 0) CALL STARTIME(TIMERS,155)
             DO KK=1,NB_INTER_SORTED
               N = LIST_INTER_SORTED(KK)
               ! -----------------------------
                       CALL SPMD_CELL_LIST_EXCHANGE_2(IRECVFROM,ISENDTO,3,WEIGHT,IAD_ELEM,
      .                   FR_ELEM,X,V,MS,TEMP,
      .                   KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI,
-     .                   N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ)!, GOT_PREVIEW)   !   size of cell list
+     .                   N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ,TIMERS)!, GOT_PREVIEW)   !   size of cell list
               ! -----------------------------
             enddo 
+            IF(ITASK == 0) CALL stoptime(TIMERS,155)
           endif
         endif     
       endif

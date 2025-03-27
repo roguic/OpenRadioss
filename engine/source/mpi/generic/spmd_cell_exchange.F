@@ -301,11 +301,15 @@ C================================================================
          !I24IREMP  = IREM(6,1)
          if(GOT_NEWSORT/=0) then
           SORT_COMM(NIN)%NSNR = 0
+          next = 0
           do l=1,sort_comm(nin)%nbirecv
             P = SORT_COMM(NIN)%ISINDEXI(L)          
             nsnfi(nin)%p(p) = SORT_COMM(NIN)%DATA_PROC(P)%irem(1)
+            if(nsnfi(nin)%p(p)>0) next = next + 1
             SORT_COMM(NIN)%NSNR = SORT_COMM(NIN)%NSNR + nsnfi(nin)%p(p)          
           enddo
+          if(next>0) print*," CoMm MpI ",ispmd,next
+          next = 0
           nsnr = SORT_COMM(NIN)%NSNR
           ALLOCATE(XREM(RSIZ,NSNR),STAT=IERROR)
           ALLOCATE(IREM(ISIZ,NSNR),STAT=IERROR)

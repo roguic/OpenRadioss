@@ -58,6 +58,7 @@
         USE INTER_SORTING_MOD
         USE INTER_STRUCT_MOD
         USE TRI7BOX
+        USE TIMER_MOD
 !-----------------------------------------------
 !   I m p l i c i t   T y p e s
 !-----------------------------------------------
@@ -290,10 +291,12 @@
                 if(id_proc==loc_proc) is_exchange_needed=.false.
                 if(nb_remote_m_cell==0) is_exchange_needed=.false.
                 if(is_exchange_needed) then
+                  IF(ITASK == 0) CALL STARTIME(TIMERS,156)
                   !   prepare the S buffer of secondary nodes (x, v, temp ...)
                   CALL SPMD_CELL_SIZE_EXCHANGE_2(IRCVFROM,ISENDTO,WEIGHT,
      .              IAD_ELEM,FR_ELEM,X,V,MS,TEMP,KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI,NIN,index_proc,
      .              ALREADY_SEND,INDEX_ALREADY_SEND,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZE)
+                  IF(ITASK == 0) CALL STOPTIME(TIMERS,156)
                 endif
           
             endif
