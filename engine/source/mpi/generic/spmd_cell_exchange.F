@@ -168,8 +168,6 @@ C================================================================
             if(ispmd/=i-1) then
               allocate(sort_comm(nin)%data_proc(i)%irem(NSNFI(NIN)%P(i)*ISIZ+1))
               allocate(sort_comm(nin)%data_proc(i)%xrem(NSNFI(NIN)%P(i)*RSIZ+1))
-              sort_comm(nin)%data_proc(i)%irem(:) = -2345678
-              sort_comm(nin)%data_proc(i)%xrem(:) = -2345678
             endif
           enddo
         endif
@@ -308,7 +306,7 @@ C================================================================
             if(nsnfi(nin)%p(p)>0) next = next + 1
             SORT_COMM(NIN)%NSNR = SORT_COMM(NIN)%NSNR + nsnfi(nin)%p(p)          
           enddo
-          if(next>0) print*," CoMm MpI ",ispmd,next
+          !if(next>0) print*," CoMm MpI ",ispmd,next
           next = 0
           nsnr = SORT_COMM(NIN)%NSNR
           ALLOCATE(XREM(RSIZ,NSNR),STAT=IERROR)

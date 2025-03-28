@@ -252,6 +252,7 @@
           ALLOCATE( INDEX_ALREADY_SEND(NB_CELL_X*NB_CELL_Y*NB_CELL_Z) )
           do i=1,sort_comm(nin)%nb_request_r_cell_proc
             call mpi_waitany( sort_comm(nin)%nb_request_r_cell_proc,sort_comm(nin)%request_r_cell_proc,index_r,status,ierror)
+            CALL STARTIME(TIMERS,157)
             index_proc = sort_comm(nin)%index_rcv_2(index_r)
             id_proc = sort_comm(nin)%proc_list(index_proc)
             my_address = (index_proc-1)*2+1
@@ -287,6 +288,7 @@
                 endif
               enddo
             endif
+            CALL STOPTIME(TIMERS,157)
             if(isendto(nin,loc_proc)>0) then ! check if I have S nodes            
                 is_exchange_needed=.true.
                 if(id_proc==loc_proc) is_exchange_needed=.false.

@@ -204,8 +204,9 @@ C
           FIELDS(4) = 154 ; TITLES(FIELDS(4)) = '154' 
           FIELDS(5) = 155 ; TITLES(FIELDS(5)) = '155' 
           FIELDS(6) = 156 ; TITLES(FIELDS(6)) = '156' 
+          FIELDS(7) = 157 ; TITLES(FIELDS(7)) = '157' 
 
-          NFIELDS = 6
+          NFIELDS = 7
           
           CALL PRINT_BLOCK("** INTERFACE TIME 2 **",TABTIME,NTIMAX,
      .                        FLAG,OUT_ID,NFIELDS,FIELDS,TITLES)
