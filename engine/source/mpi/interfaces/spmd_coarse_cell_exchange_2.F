@@ -139,6 +139,7 @@ C-----------------------------------------------
                   my_size = sort_comm(nin)%proc_number
                   allocate(SORT_COMM(NIN)%address_m_coarse_cell(my_size))
                 endif
+
 !isendto = nsn
 !IRECVFROM = nmn
                 TOTAL_RCV_SIZE = 0
@@ -187,11 +188,13 @@ C-----------------------------------------------
                 IF(ISENDTO(NIN,LOC_PROC)>0) TOTAL_SEND_SIZE = NB_BOX_COARSE_GRID**3 + 1
                 IF(IRECVFROM(NIN,LOC_PROC)>0) TOTAL_SEND_SIZE = TOTAL_SEND_SIZE + NB_BOX_COARSE_GRID**3 + 1
                 allocate(s_buffer(TOTAL_SEND_SIZE))
+                s_buffer(:) = 0
                 IF(ISENDTO(NIN,LOC_PROC)>0) then
                   s_buffer(1:NB_BOX_COARSE_GRID**3 + 1) = SORT_COMM(NIN)%COARSE_GRID(1:NB_BOX_COARSE_GRID**3 + 1)
                 endif
                 next = 0
                 my_address = NB_BOX_COARSE_GRID**3 + 1
+                
                 IF(IRECVFROM(NIN,LOC_PROC)>0) then
                   do iz=1,NB_BOX_COARSE_GRID                    
                     do iy=1,NB_BOX_COARSE_GRID
