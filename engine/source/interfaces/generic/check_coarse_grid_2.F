@@ -95,7 +95,7 @@ C-----------------------------------------------
                       print*," PB 0:'",ispmd,id_proc,DISPL,J,size(SORT_COMM(NIN)%GLOBAL_COARSE_CELL)
                     endif
                       IJK = SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+J)
-                      if(ijk>size(M_S_COARSE_GRID)) then
+                      if(ijk>size(M_S_COARSE_GRID).or.ijk<0) then
                         print*," PB 1:'",ispmd,id_proc,ijk,size(M_S_COARSE_GRID)
                       endif
                       IF(M_S_COARSE_GRID(IJK)==1) KEEP_THIS_PROC = .TRUE.

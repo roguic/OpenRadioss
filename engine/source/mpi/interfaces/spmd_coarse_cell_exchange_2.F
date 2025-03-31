@@ -183,6 +183,7 @@ C-----------------------------------------------
                 IF(.NOT.ALLOCATED(SORT_COMM(NIN)%GLOBAL_COARSE_CELL ) )THEN                
                     ALLOCATE(SORT_COMM(NIN)%GLOBAL_COARSE_CELL(TOTAL_RCV_SIZE))
                 ENDIF
+                SORT_COMM(NIN)%GLOBAL_COARSE_CELL(:) = -1234567
                 SORT_COMM(NIN)%SIZE_GLOBAL_COARSE_CELL = TOTAL_RCV_SIZE
 
                 IF(ISENDTO(NIN,LOC_PROC)>0) TOTAL_SEND_SIZE = NB_BOX_COARSE_GRID**3 + 1
