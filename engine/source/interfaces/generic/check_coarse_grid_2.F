@@ -90,6 +90,9 @@ C-----------------------------------------------
               IF(.NOT.BREAK_) THEN
                   ! loop over the cell of P and check if 1 common cell
                   my_size = SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+NB_BOX_COARSE_GRID**3+1)
+                  if(my_size>4**3.or.my_size<0) then
+                    print*," PB -1 ",ispmd,id_proc,my_size
+                  endif
                   DO J=1,my_size
                     if(DISPL+J>size(SORT_COMM(NIN)%GLOBAL_COARSE_CELL)) then
                       print*," PB 0:'",ispmd,id_proc,DISPL,J,size(SORT_COMM(NIN)%GLOBAL_COARSE_CELL)
