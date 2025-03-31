@@ -90,7 +90,13 @@ C-----------------------------------------------
                   ! loop over the cell of P and check if 1 common cell
                   my_size = SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+NB_BOX_COARSE_GRID**3+1)
                   DO J=1,my_size
+                    if(DISPL+J>size(SORT_COMM(NIN)%GLOBAL_COARSE_CELL)) then
+                      print*," PB 0:'",ispmd,id_proc,DISPL,J,size(SORT_COMM(NIN)%GLOBAL_COARSE_CELL)
+                    endif
                       IJK = SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+J)
+                      if(ijk>size(M_S_COARSE_GRID)) then
+                        print*," PB 1:'",ispmd,id_proc,ijk,size(M_S_COARSE_GRID)
+                      endif
                       IF(M_S_COARSE_GRID(IJK)==1) KEEP_THIS_PROC = .TRUE.
                   ENDDO
               ENDIF
