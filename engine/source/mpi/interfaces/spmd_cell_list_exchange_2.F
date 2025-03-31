@@ -129,6 +129,7 @@
         integer :: remote_s_node_nb
         integer :: my_shift,my_address,my_address_2,my_value
         integer :: cell_x_id,cell_y_id,cell_z_id,index_proc
+        integer :: local_s_buffer(2)
 !   --------------------------------------------------------------------
 
         loc_proc = ispmd + 1
@@ -193,7 +194,14 @@
               sort_comm(nin)%nb_request_s_nb_cell_proc = sort_comm(nin)%nb_request_s_nb_cell_proc + 1
               sort_comm(nin)%index_send(sort_comm(nin)%nb_request_s_nb_cell_proc) = i
               !MPI_ISEND(BUF, COUNT, DATATYPE, DEST, TAG, COMM, REQUEST, IERROR)
-              call mpi_isend(sort_comm(nin)%size_cell_list,2,MPI_INTEGER,it_spmd(id_proc), 
+              local_s_buffer(1:2) = sort_comm(nin)%size_cell_list(1:2)
+              IF(SORT_COMM(NIN)%PROC_NUMBER>NSPMD/2) THEN
+                IF(.NOT.SORT_COMM(NIN)%KEEP_PROC(i)) THEN
+                  local_s_buffer(1:2) = 0
+                ENDIF
+            ENDIF
+            
+              call mpi_isend(local_s_buffer,2,MPI_INTEGER,it_spmd(id_proc), 
      .              tag_1,SPMD_COMM_WORLD,sort_comm(nin)%request_s_nb_cell_proc(sort_comm(nin)%nb_request_s_nb_cell_proc),ierror)
             endif
           enddo
@@ -224,11 +232,14 @@
             nb_remote_m_cell = sort_comm(nin)%nb_cell_proc(my_address)
             nb_remote_s_cell = sort_comm(nin)%nb_cell_proc(my_address+1)
             my_size = nb_remote_m_cell + 2 * nb_remote_s_cell
+            
             allocate( sort_comm(nin)%data_proc(id_proc)%remote_cell(my_size) )
-            sort_comm(nin)%nb_request_r_cell_proc = sort_comm(nin)%nb_request_r_cell_proc + 1
-            sort_comm(nin)%index_rcv_2(sort_comm(nin)%nb_request_r_cell_proc) = j
-            call mpi_irecv(sort_comm(nin)%data_proc(id_proc)%remote_cell,my_size,MPI_INTEGER,it_spmd(id_proc), 
-     .       tag_2,SPMD_COMM_WORLD,sort_comm(nin)%request_r_cell_proc(sort_comm(nin)%nb_request_r_cell_proc),ierror)
+            if(my_size>0) then
+              sort_comm(nin)%nb_request_r_cell_proc = sort_comm(nin)%nb_request_r_cell_proc + 1
+              sort_comm(nin)%index_rcv_2(sort_comm(nin)%nb_request_r_cell_proc) = j
+              call mpi_irecv(sort_comm(nin)%data_proc(id_proc)%remote_cell,my_size,MPI_INTEGER,it_spmd(id_proc), 
+     .          tag_2,SPMD_COMM_WORLD,sort_comm(nin)%request_r_cell_proc(sort_comm(nin)%nb_request_r_cell_proc),ierror)
+            endif
           enddo
 
           do i=1,sort_comm(nin)%nb_request_s_nb_cell_proc
@@ -236,11 +247,18 @@
             j = sort_comm(nin)%index_send(index_s)
             id_proc = sort_comm(nin)%proc_list(j)
 
-            sort_comm(nin)%nb_request_s_cell_proc = sort_comm(nin)%nb_request_s_cell_proc + 1
-            sort_comm(nin)%index_send_2(sort_comm(nin)%nb_request_s_cell_proc) = j
             my_size = sort_comm(nin)%size_cell_list(1) + 2*sort_comm(nin)%size_cell_list(2)
-            call mpi_isend(sort_comm(nin)%cell_list,my_size,MPI_INTEGER,it_spmd(id_proc), 
+            IF(SORT_COMM(NIN)%PROC_NUMBER>NSPMD/2) THEN
+              IF(.NOT.SORT_COMM(NIN)%KEEP_PROC(j)) THEN
+                my_size = 0
+              ENDIF
+            ENDIF
+            if(my_size>0) then
+              sort_comm(nin)%nb_request_s_cell_proc = sort_comm(nin)%nb_request_s_cell_proc + 1
+              sort_comm(nin)%index_send_2(sort_comm(nin)%nb_request_s_cell_proc) = j
+              call mpi_isend(sort_comm(nin)%cell_list,my_size,MPI_INTEGER,it_spmd(id_proc), 
      .       tag_2,SPMD_COMM_WORLD,sort_comm(nin)%request_s_cell_proc(sort_comm(nin)%nb_request_s_cell_proc),ierror)
+            endif
           enddo
         endif
 
@@ -293,7 +311,10 @@
                 is_exchange_needed=.true.
                 if(id_proc==loc_proc) is_exchange_needed=.false.
                 if(nb_remote_m_cell==0) is_exchange_needed=.false.
+                ITIED = IPARI(85,NIN)
+                IF(ITIED/=0.AND.IRCVFROM(NIN,id_proc)/=0)  IS_EXCHANGE_NEEDED = .TRUE.   ! itied option : force the exchange    
                 if(is_exchange_needed) then
+                  
                   CALL STARTIME(TIMERS,156)
                   !   prepare the S buffer of secondary nodes (x, v, temp ...)
                   CALL SPMD_CELL_SIZE_EXCHANGE_2(IRCVFROM,ISENDTO,WEIGHT,

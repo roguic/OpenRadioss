@@ -145,11 +145,11 @@ C================================================================
       NSNR = SORT_COMM(NIN)%NSNR
       OFFSET(1:NSPMD) = NSNR+1 
 
-
+      
       IF(.NOT. (IRCVFROM(NIN,LOC_PROC)==0.AND.ISENDTO(NIN,LOC_PROC)==0))  THEN
-
+      
       IF (IMONM > 0) CALL STARTIME(TIMERS,25)
-
+          !print*," Exchange ",ncycle,nin,ispmd,nsnr
       RSIZ = SORT_COMM(NIN)%RSIZ
       ISIZ = SORT_COMM(NIN)%ISIZ  
 
@@ -171,6 +171,8 @@ C================================================================
             endif
           enddo
         endif
+
+      
         
           IF(IERROR/=0) THEN
             CALL ANCMSG(MSGID=20,ANMODE=ANINFO)
@@ -183,6 +185,7 @@ C================================================================
             if(GOT_NEWSORT==0) then
               MSGTYP = MSGOFF4
               LEN = NSNFI(NIN)%P(P)*RSIZ
+              !print*,"Old R ",ncycle,nin,ispmd,p-1,NSNFI(NIN)%P(P)
               CALL MPI_IRECV(
      1        XREM(1,IDEB),LEN,REAL,IT_SPMD(P),
      2        MSGTYP,SPMD_COMM_WORLD,REQ_RD(L),IERROR)
@@ -194,7 +197,7 @@ C================================================================
      2        MSGTYP,SPMD_COMM_WORLD,REQ_RD2(L),IERROR)
               IDEB = IDEB + NSNFI(NIN)%P(P)     
             else
-              !print*," R :",ncycle,nin,ispmd,P-1,NSNFI(NIN)%P(P)
+             ! print*,"New R ",ncycle,nin,ispmd,p-1,NSNFI(NIN)%P(P)
               MSGTYP = MSGOFF4
               LEN = NSNFI(NIN)%P(P)*RSIZ + 1
               CALL MPI_IRECV(
@@ -217,11 +220,13 @@ C================================================================
       ! prepare the send --> local number of secondary node > 0 & remote number of main node > 0
       DO P=1,NSPMD
         IF(P/=LOC_PROC) THEN
+          
             if(got_newsort/=0) then
+             ! print*," New S -- ",ncycle,nin,ispmd,p-1,SORT_COMM(NIN)%NB(P),(sort_comm(nin)%data_proc(p)%comm_needed)           
               if(sort_comm(nin)%data_proc(p)%comm_needed) then
                 MSGTYP = MSGOFF4
-                SIZE_S = SORT_COMM(NIN)%NB(P) * SORT_COMM(NIN)%RSIZ + 1                
-                !print*," S :",ncycle,nin,ispmd,P-1,SORT_COMM(NIN)%NB(P)
+                SIZE_S = SORT_COMM(NIN)%NB(P) * SORT_COMM(NIN)%RSIZ + 1
+             !   print*," New S ",ncycle,nin,ispmd,p-1,SORT_COMM(NIN)%NB(P)        
                 CALL MPI_ISEND(
      1            SORT_COMM(NIN)%DATA_PROC(P)%RBUF,SIZE_S,REAL,IT_SPMD(P),MSGTYP,
      2            SPMD_COMM_WORLD,SORT_COMM(NIN)%REQ_SD2(P),ierror)
@@ -236,7 +241,7 @@ C================================================================
             else
               IF(SORT_COMM(NIN)%NB(P)/=0 ) THEN
                 MSGTYP = MSGOFF4
-
+               ! print*," Old S ",ncycle,nin,ispmd,p-1,SORT_COMM(NIN)%NB(P)        
                 SIZE_S = SORT_COMM(NIN)%NB(P) * SORT_COMM(NIN)%RSIZ
                 CALL MPI_ISEND(
      1            SORT_COMM(NIN)%DATA_PROC(P)%RBUF,SIZE_S,REAL,IT_SPMD(P),MSGTYP,
@@ -264,7 +269,7 @@ C================================================================
       ! wait the rcv comm
       IF(IRCVFROM(NIN,LOC_PROC)/=0) THEN  !   nmn > 0
        IF(NSNR>0) THEN   !   nsnr>0 only on proc with nmn>0
-        !print*," Wait R :",ncycle,nin,ispmd,SORT_COMM(NIN)%NBIRECV
+        
          DO L = 1, SORT_COMM(NIN)%NBIRECV
           CALL MPI_WAITANY(SORT_COMM(NIN)%NBIRECV,REQ_RD,INDEXI,STATUS,IERROR) !XREM
 
@@ -306,7 +311,7 @@ C================================================================
             if(nsnfi(nin)%p(p)>0) next = next + 1
             SORT_COMM(NIN)%NSNR = SORT_COMM(NIN)%NSNR + nsnfi(nin)%p(p)          
           enddo
-          !if(next>0) print*," CoMm MpI ",ispmd,next
+        
           next = 0
           nsnr = SORT_COMM(NIN)%NSNR
           ALLOCATE(XREM(RSIZ,NSNR),STAT=IERROR)
@@ -389,6 +394,10 @@ C================================================================
           ENDIF
         ENDDO
       ENDIF
+
+      do i=1,nspmd
+       ! if(nsnfi(nin)%p(i-1)>0) print*," NSNFI",ncycle,nin,ispmd,i-1,nsnfi(nin)%p(i-1)
+      enddo
       ! ---------------------------------------
       ELSE 
 

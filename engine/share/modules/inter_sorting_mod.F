@@ -102,8 +102,13 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
                 INTEGER, DIMENSION(:), ALLOCATABLE :: RCV_DISPLS_COARSE_CELL    ! displacement for R
                 INTEGER, DIMENSION(:), ALLOCATABLE :: COARSE_GRID               ! list of local cell colored by secondary nodes S (S --> R) : size = NB_BOX_COARSE_GRID**3 + 1
                 INTEGER, DIMENSION(:,:,:), ALLOCATABLE :: MAIN_COARSE_GRID          ! list of cell colored by main node
+                INTEGER, DIMENSION(:,:,:), ALLOCATABLE :: SECOND_COARSE_GRID
                 INTEGER :: SIZE_GLOBAL_COARSE_CELL                              ! total number of cell 
                 INTEGER, DIMENSION(:), ALLOCATABLE :: GLOBAL_COARSE_CELL        ! list of remote cell colored by secondary nodes R : size = nspmd x (NB_BOX_COARSE_GRID**3 + 1)
+                INTEGER, DIMENSION(:), ALLOCATABLE :: address_m_coarse_cell
+                INTEGER, DIMENSION(:), ALLOCATABLE :: nb_m_coarse_cell
+                INTEGER, DIMENSION(:), ALLOCATABLE :: address_s_coarse_cell
+                INTEGER, DIMENSION(:), ALLOCATABLE :: nb_s_coarse_cell
 
                 LOGICAL, DIMENSION(:), ALLOCATABLE :: KEEP_PROC                 ! boolean, true if current proc and P proc need to communicate 
                 !   -----------------------------

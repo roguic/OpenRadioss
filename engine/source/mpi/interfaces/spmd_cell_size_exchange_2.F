@@ -167,11 +167,12 @@ C-----------------------------------------------
                 NB = 0
                 !   --------------------------
                 IF(ITIED/=0.AND.ITYP==7) THEN
-                    !   itied/=0 --> need to send all nodes 
+                    !   itied/=0 --> need to send all nodes                   
+                    sort_comm(nin)%data_proc(p)%comm_needed = .true.
                     DO I=1,NSN
                         NOD = INTBUF_TAB(NIN)%NSV(I)
                         IF(WEIGHT(NOD)==1)THEN
-                            IF(CANDF_SI(NIN)%P(I)/=0.AND.INTBUF_TAB(NIN)%STFNS(I)>ZERO)THEN
+                            IF(CANDF_SI(NIN)%P(I)/=0.AND.INTBUF_TAB(NIN)%STFNS(I)>ZERO)THEN 
                                 NB = NB + 1
                                 INDEX(NB) = I
                             ENDIF
@@ -185,6 +186,7 @@ C-----------------------------------------------
                 !IJK = 0
                 !sort_comm(nin)%nb_cell_proc(my_address)
                 my_address = (REMOTE_PROC_ID-1)*2+1
+                
                 DO KJI=1,sort_comm(nin)%nb_cell_proc(my_address)
                     !   ----------------------
                     !   get the cell ID 
@@ -200,17 +202,16 @@ C-----------------------------------------------
                         NB_INDEX_ALREADY_SEND = NB_INDEX_ALREADY_SEND + 1
                         INDEX_ALREADY_SEND(NB_INDEX_ALREADY_SEND) = CELL_X_ID+CELL_Y_ID*1000+CELL_Z_ID*1000000
                         ALREADY_SEND(CELL_X_ID,CELL_Y_ID,CELL_Z_ID) = .TRUE.
-
                         !   ----------------------
                         !   loop over the secondary nodes of cell ID (CELL_X_ID,CELL_Y_ID,CELL_Z_ID)
                         I = SORT_COMM(NIN)%VOXEL(CELL_X_ID,CELL_Y_ID,CELL_Z_ID)                    
-                        DO WHILE(I/=0)                     
-                          sort_comm(nin)%data_proc(p)%comm_needed = .true.  
+                        if(i/=0) sort_comm(nin)%data_proc(p)%comm_needed = .true. 
+                        DO WHILE(I/=0)                      
                           NOD = INTBUF_TAB(NIN)%NSV(I)
                           IF(WEIGHT(NOD)==1)THEN
                             IF(INTBUF_TAB(NIN)%STFNS(I)>ZERO)THEN
                               NB = NB + 1
-                              INDEX(NB) = I
+                              INDEX(NB) = I                              
                             ENDIF
                           ENDIF
                           I = SORT_COMM(NIN)%NEXT_NOD(I)
@@ -227,10 +228,10 @@ C-----------------------------------------------
                     CELL_Y_ID = ( VALUE - MOD(VALUE,1000) ) / 1000
                     VALUE = VALUE - CELL_Y_ID * 1000
                     CELL_X_ID = VALUE
-                    ALREADY_SEND(CELL_X_ID,CELL_Y_ID,CELL_Z_ID) = .FALSE.
+                    ALREADY_SEND(CELL_X_ID,CELL_Y_ID,CELL_Z_ID) = .FALSE.                    
                 ENDDO
                 !   --------------------------
-                !   need to sort the secondary nodes
+                !   need to sort the secondary nodes                
                 NB_SAVE = NB
                 IF(NB_SAVE>1600) THEN
                     ALLOCATE( WORK(70000) )

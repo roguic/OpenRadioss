@@ -130,14 +130,14 @@
 
             IF(ITASK==0) THEN
                 COARSE_GRID = .FALSE.
-!                IF(SORT_COMM(NIN)%PROC_NUMBER>NSPMD/2) THEN
-!                    COARSE_GRID = .TRUE.
-!                    IF(.NOT.ALLOCATED(SORT_COMM(NIN)%MAIN_COARSE_GRID) ) THEN
-!                        ALLOCATE(SORT_COMM(NIN)%MAIN_COARSE_GRID( &
-!                             NB_BOX_COARSE_GRID,NB_BOX_COARSE_GRID,NB_BOX_COARSE_GRID ) )
-!                   ENDIF
-!                   SORT_COMM(NIN)%MAIN_COARSE_GRID(:,:,:) = 0
-!               ENDIF
+                IF(SORT_COMM(NIN)%PROC_NUMBER>NSPMD/2) THEN
+                    COARSE_GRID = .TRUE.
+                    IF(.NOT.ALLOCATED(SORT_COMM(NIN)%MAIN_COARSE_GRID) ) THEN
+                        ALLOCATE(SORT_COMM(NIN)%MAIN_COARSE_GRID( 
+     .                        NB_BOX_COARSE_GRID,NB_BOX_COARSE_GRID,NB_BOX_COARSE_GRID ) )
+                   ENDIF
+                   SORT_COMM(NIN)%MAIN_COARSE_GRID(:,:,:) = 0
+               ENDIF
                 if(allocated(sort_comm(nin)%m_cell_mark)) then
                   deallocate( sort_comm(nin)%m_cell_mark )
                 endif
@@ -153,7 +153,7 @@
      .                 GAPMIN ,GAPMAX,INTBUF_TAB(NIN)%GAP_M(1+ESHIFT) , 
      .                 INTBUF_TAB(NIN)%IRECTM(1+4*ESHIFT),GAP,INTBUF_TAB(NIN)%VARIABLES(bgapsmx_index),DRAD, 
      .                 NB_LOCAL_CELL(ITASK+1),SIZE_INDEX_CELL,INDEX_CELL, 
-     .                 DGAPLOAD,cell_mark)
+     .                 COARSE_GRID,SORT_COMM(NIN)%MAIN_COARSE_GRID,DGAPLOAD,cell_mark)
 
             CALL MY_BARRIER()
             ! --------------------   

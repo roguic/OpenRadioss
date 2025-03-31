@@ -90,6 +90,7 @@ C-----------------------------------------------
 #include      "com04_c.inc"
 #include      "param_c.inc"
 #include      "tabsiz_c.inc"
+#include "task_c.inc"
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
@@ -391,8 +392,15 @@ C-----------------------------------------------
           IF(ITASK==0) THEN
               CALL SPMD_BOX_LIMIT_REDUCTION(NB_INTER_SORTED)
           ENDIF
+          IF(ITASK==0) THEN
+            IF(.NOT.ALLOCATED(LOCAL_COARSE_GRID)) THEN
+                ALLOCATE(LOCAL_COARSE_GRID(NB_BOX_COARSE_GRID**3+1))
+            ENDIF            
+            LOCAL_COARSE_GRID(1:NB_BOX_COARSE_GRID**3+1) = 0
+          ENDIF
           CALL MY_BARRIER()
       ENDIF
+    
       ! -----------------------------
       IF(ITASK == 0) CALL stoptime(TIMERS,151)
       IF(ITASK == 0) CALL STARTIME(TIMERS,152)
@@ -401,12 +409,24 @@ C-----------------------------------------------
         IF(NB_INTER_SORTED>0) THEN
           IF(ITASK==0)  CALL INTER_BOX_CREATION( )
           CALL MY_BARRIER()
+          CALL INTER_COLOR_COARSE_VOXEL(ITASK,NB_INTER_SORTED,LIST_INTER_SORTED,IPARI,INTBUF_TAB,
+     .                                    X,SORT_COMM)
           do kk=1,nb_inter_sorted
             n = list_inter_sorted(kk)
             CALL INTER_VOXEL_CREATION_2(IPARI,INTBUF_TAB,X,N,SORT_COMM)! create the voxel of secondary nodes
           enddo
           CALL INTER_COLOR_VOXEL_2( ITASK,NB_INTER_SORTED,LIST_INTER_SORTED,IPARI,INTBUF_TAB,
      .                              X,INTER_STRUCT,SORT_COMM )
+        ENDIF
+                ! -----------------------------
+        ! exchange of coarse_grid : send/rcv part
+        IF(NSPMD>1.AND.NEED_TO_SORT>0)THEN
+          IF(ITASK==0) THEN
+              CALL SPMD_COARSE_CELL_EXCHANGE_2(NB_INTER_SORTED,LIST_INTER_SORTED,IRECVFROM,ISENDTO,1,
+     .                       IPARI,SORT_COMM,NB_REQUEST_COARSE_CELL,ARRAY_REQUEST_COARSE_CELL,LIST_INTER_COARSE_CELL)
+              CALL SPMD_COARSE_CELL_EXCHANGE_2(NB_INTER_SORTED,LIST_INTER_SORTED,IRECVFROM,ISENDTO,2,
+     .                       IPARI,SORT_COMM,NB_REQUEST_COARSE_CELL,ARRAY_REQUEST_COARSE_CELL,LIST_INTER_COARSE_CELL)
+          ENDIF
         ENDIF
         ! -----------------------------
         CALL MY_BARRIER()
@@ -452,7 +472,6 @@ C-----------------------------------------------
         endif     
       endif
       CALL MY_BARRIER()
-
 
         RETURN
         END SUBROUTINE INTER_PREPARE_SORT

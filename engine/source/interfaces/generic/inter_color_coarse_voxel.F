@@ -126,7 +126,12 @@ C-----------------------------------------------
                     IF(.NOT.ALLOCATED(SORT_COMM(NIN)%COARSE_GRID)) THEN
                         ALLOCATE(SORT_COMM(NIN)%COARSE_GRID(NB_BOX_COARSE_GRID**3 + 1))
                     ENDIF
+                    IF(.NOT.ALLOCATED(SORT_COMM(NIN)%SECOND_COARSE_GRID)) THEN
+                      ALLOCATE(SORT_COMM(NIN)%SECOND_COARSE_GRID(NB_BOX_COARSE_GRID,NB_BOX_COARSE_GRID,NB_BOX_COARSE_GRID))
+                    ENDIF
+                  
                     SORT_COMM(NIN)%COARSE_GRID(1:NB_BOX_COARSE_GRID**3 + 1) = 0
+                    SORT_COMM(NIN)%SECOND_COARSE_GRID(:,:,:) = 0
                     NEXT = 0
                     DO IZ=1,4
                         DO IY=1,4
@@ -135,6 +140,7 @@ C-----------------------------------------------
                                     NEXT = NEXT + 1
                                     SORT_COMM(NIN)%COARSE_GRID(NEXT) = 
      .                IX+(IY-1)*NB_BOX_COARSE_GRID+(IZ-1)*NB_BOX_COARSE_GRID**2
+                                    SORT_COMM(NIN)%SECOND_COARSE_GRID(ix,iy,iz) = 1
                                 ENDIF
                             ENDDO
                         ENDDO

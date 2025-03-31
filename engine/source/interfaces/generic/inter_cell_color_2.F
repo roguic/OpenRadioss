@@ -32,7 +32,7 @@
      .                   TZINF  ,CURV_MAX, 
      .                   GAPMIN ,GAPMAX,GAP_M , 
      .             IRECT  ,GAP     ,BGAPSMX,DRAD  ,NB_INDEX_CELL,SIZE_INDEX_CELL,INDEX_CELL, 
-     .                  DGAPLOAD,cell_mark)
+     .                  NEEDED,MAIN_COARSE_GRID,DGAPLOAD,cell_mark)
 !$COMMENT
 !       INTER_CELL_COLOR description :
 !       color the fine cell & coarse cell with main nodes
@@ -69,6 +69,8 @@
         INTEGER, DIMENSION(SIZE_INDEX_CELL),INTENT(inout) :: INDEX_CELL
         my_real , INTENT(IN) :: DGAPLOAD
         integer, dimension(NB_CELL_X,NB_CELL_Y,NB_CELL_Z), intent(inout) :: cell_mark
+        logical, intent(in) :: NEEDED
+        INTEGER, DIMENSION(NB_BOX_COARSE_GRID,NB_BOX_COARSE_GRID,NB_BOX_COARSE_GRID), INTENT(inout) :: MAIN_COARSE_GRID
 !-----------------------------------------------
 !   L o c a l  V a r i a b l e s
 !-----------------------------------------------
@@ -81,6 +83,7 @@
      .        XMINE,YMINE,ZMINE,XMAXE,YMAXE,ZMAXE, 
      .        XX1,XX2,XX3,XX4,YY1,YY2,YY3,YY4,ZZ1,ZZ2,ZZ3,ZZ4
         my_real :: VALUE
+        INTEGER :: IX_COARSE,IY_COARSE,IZ_COARSE
 !-----------------------------------------------
 !   S o u r c e  L i n e s
 !-----------------------------------------------
@@ -152,18 +155,29 @@
             IZ2=MAX(1,MIN(NBZ,IZ2))
 
             !   loop over the cell and cell coloration
-            DO IZ = IZ1, IZ2             
+            DO IZ = IZ1, IZ2          
+              VALUE = 4.*float(IZ)/float(NB_CELL_Z)
+              IZ_COARSE = MIN(INT(VALUE),NB_BOX_COARSE_GRID)
+              IZ_COARSE = MAX(IZ_COARSE,1)   
                 DO IY = IY1, IY2
+                  VALUE = 4.*float(IY)/float(NB_CELL_Y)
+                  IY_COARSE = MIN(INT(VALUE),NB_BOX_COARSE_GRID)
+                  IY_COARSE = MAX(IY_COARSE,1)
                     DO IX = IX1, IX2
+                      VALUE = 4.*float(IX)/float(NB_CELL_X)
+                      IX_COARSE = MIN(INT(VALUE),NB_BOX_COARSE_GRID)
+                      IX_COARSE = MAX(IX_COARSE,1)
                         IF(cell_mark(IX,IY,IZ)==0) THEN
                             NB_INDEX_CELL = NB_INDEX_CELL + 1
                             INDEX_CELL(NB_INDEX_CELL) = IX + 1000*IY +1000**2 * IZ
                             cell_mark(IX,IY,IZ) = 1
+                            IF(NEEDED) MAIN_COARSE_GRID(IX_COARSE,IY_COARSE,IZ_COARSE) = 1
                         ENDIF
                     END DO
                 END DO
             END DO
         ENDDO
+      
         ! ------------------------------
 
         RETURN
