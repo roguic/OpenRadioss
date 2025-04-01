@@ -203,6 +203,7 @@ C-----------------------------------------------
                   endif
 
 
+
                 IF(.NOT.ALLOCATED(SORT_COMM(NIN)%GLOBAL_COARSE_CELL ) )THEN                
                     ALLOCATE(SORT_COMM(NIN)%GLOBAL_COARSE_CELL(TOTAL_RCV_SIZE))
                 ENDIF
@@ -219,6 +220,12 @@ C-----------------------------------------------
                 IF(ISENDTO(NIN,LOC_PROC)>0) then
                   s_buffer(1:NB_BOX_COARSE_GRID**3 + 1) = SORT_COMM(NIN)%COARSE_GRID(1:NB_BOX_COARSE_GRID**3 + 1)
                   my_address = my_address + NB_BOX_COARSE_GRID**3 + 1
+
+                  do iz=1,s_buffer(NB_BOX_COARSE_GRID**3 + 1)
+                    if(s_buffer(iz)<=0) then
+                      print*," Pb EnVoI s_BuFfEr S ",ispmd,iz,s_buffer(my_address+iz)
+                    endif
+                  enddo
                 endif
                 next = 0
                 
@@ -237,6 +244,11 @@ C-----------------------------------------------
                     enddo
                   enddo
                   s_buffer(my_address+NB_BOX_COARSE_GRID**3 + 1) = next
+                  do iz=1,s_buffer(my_address+NB_BOX_COARSE_GRID**3 + 1)
+                    if(s_buffer(my_address+iz)<=0) then
+                      print*," Pb EnVoI s_BuFfEr M ",ispmd,my_address+iz,s_buffer(my_address+iz)
+                    endif
+                  enddo
                 endif
                 
                 NB_REQUEST_COARSE_CELL = NB_REQUEST_COARSE_CELL + 1
