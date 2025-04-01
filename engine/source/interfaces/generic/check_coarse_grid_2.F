@@ -47,6 +47,7 @@ C-----------------------------------------------
 #include      "implicit_f.inc"
 #include      "comlock.inc"
 #include "task_c.inc"
+#include      "com01_c.inc"
 C-----------------------------------------------
 C   C o m m o n   B l o c k s
 C-----------------------------------------------
@@ -91,15 +92,15 @@ C-----------------------------------------------
                   ! loop over the cell of P and check if 1 common cell
                   my_size = SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+NB_BOX_COARSE_GRID**3+1)
                   if(my_size>4**3.or.my_size<0) then
-                    print*," PB -1 ",ispmd,id_proc,my_size
+                    print*,ncycle," PB -1 ",ispmd,id_proc,my_size
                   endif
                   DO J=1,my_size
                     if(DISPL+J>size(SORT_COMM(NIN)%GLOBAL_COARSE_CELL)) then
-                      print*," PB 0:'",ispmd,id_proc,DISPL,J,size(SORT_COMM(NIN)%GLOBAL_COARSE_CELL)
+                      print*,ncycle," PB 0:'",ispmd,id_proc,DISPL,J,size(SORT_COMM(NIN)%GLOBAL_COARSE_CELL)
                     endif
                       IJK = SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+J)
                       if(ijk>size(M_S_COARSE_GRID).or.ijk<=0) then
-                        print*," PB 1:'",ispmd,id_proc,ijk,size(M_S_COARSE_GRID)
+                        print*,ncycle," PB 1:'",ispmd,id_proc,ijk,size(M_S_COARSE_GRID)
                       endif
                       IF(M_S_COARSE_GRID(IJK)==1) KEEP_THIS_PROC = .TRUE.
                   ENDDO
@@ -134,15 +135,15 @@ C-----------------------------------------------
                 ! loop over the cell of P and check if 1 common cell
                 my_size = SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+NB_BOX_COARSE_GRID**3+1)
                 if(my_size>4**3.or.my_size<0) then
-                  print*," PB -1 S ",ispmd,id_proc,my_size
+                  print*,ncycle," PB -1 S ",ispmd,id_proc,my_size
                 endif
                 DO J=1,my_size
                   if(DISPL+J>size(SORT_COMM(NIN)%GLOBAL_COARSE_CELL)) then
-                    print*," PB 0 S'",ispmd,id_proc,DISPL,J,size(SORT_COMM(NIN)%GLOBAL_COARSE_CELL)
+                    print*,ncycle," PB 0 S'",ispmd,id_proc,DISPL,J,size(SORT_COMM(NIN)%GLOBAL_COARSE_CELL)
                   endif
                     IJK = SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+J)
                     if(ijk>size(M_S_COARSE_GRID).or.ijk<=0) then
-                      print*," PB 1 S'",ispmd,id_proc,ijk,size(M_S_COARSE_GRID),my_size
+                      print*,ncycle," PB 1 S'",ispmd,id_proc,ijk,size(M_S_COARSE_GRID),my_size
                     endif
                     IF(M_S_COARSE_GRID(IJK)==1) KEEP_THIS_PROC = .TRUE.
                 ENDDO

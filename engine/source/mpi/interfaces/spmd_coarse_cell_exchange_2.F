@@ -231,8 +231,9 @@ C-----------------------------------------------
                       enddo
                     enddo
                   enddo
+                  s_buffer(my_address+NB_BOX_COARSE_GRID**3 + 1) = next
                 endif
-                s_buffer(my_address+NB_BOX_COARSE_GRID**3 + 1) = next
+                
                 NB_REQUEST_COARSE_CELL = NB_REQUEST_COARSE_CELL + 1
                 LIST_INTER_COARSE_CELL(NB_REQUEST_COARSE_CELL) = NIN
 
