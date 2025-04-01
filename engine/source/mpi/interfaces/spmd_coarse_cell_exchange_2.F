@@ -171,18 +171,18 @@ C-----------------------------------------------
                     SORT_COMM(NIN)%RCV_DISPLS_COARSE_CELL(I) = TOTAL_RCV_SIZE
 
                     ! Remote proc has NMN --> need to send S node voxel
-                    SORT_COMM(NIN)%address_m_coarse_cell(I) = TOTAL_RCV_SIZE
-                    SORT_COMM(NIN)%nb_m_coarse_cell(I) = 0
+                    SORT_COMM(NIN)%address_s_coarse_cell(I) = TOTAL_RCV_SIZE
+                    SORT_COMM(NIN)%nb_s_coarse_cell(I) = 0
                     IF(ISENDTO(NIN,ID_PROC)>0) THEN   !   nsn of remote proc >0  : Remote proc S --> local proc M
                         TOTAL_RCV_SIZE = TOTAL_RCV_SIZE + NB_BOX_COARSE_GRID**3 + 1
-                        SORT_COMM(NIN)%nb_m_coarse_cell(I) = NB_BOX_COARSE_GRID**3
+                        SORT_COMM(NIN)%nb_s_coarse_cell(I) = NB_BOX_COARSE_GRID**3
                     ENDIF
                     ! Remote proc has NSN --> need to send M node voxel
-                    SORT_COMM(NIN)%nb_s_coarse_cell(I) = 0
-                    SORT_COMM(NIN)%address_s_coarse_cell(I) = TOTAL_RCV_SIZE
+                    SORT_COMM(NIN)%nb_m_coarse_cell(I) = 0
+                    SORT_COMM(NIN)%address_m_coarse_cell(I) = TOTAL_RCV_SIZE
                     IF(IRECVFROM(NIN,ID_PROC)>0) THEN   !   nmn of remote proc >0  : Remote proc M --> local proc S
                       TOTAL_RCV_SIZE = TOTAL_RCV_SIZE + NB_BOX_COARSE_GRID**3 + 1
-                      SORT_COMM(NIN)%nb_s_coarse_cell(I) = NB_BOX_COARSE_GRID**3
+                      SORT_COMM(NIN)%nb_m_coarse_cell(I) = NB_BOX_COARSE_GRID**3
                     ENDIF
                 ENDDO
 
