@@ -201,12 +201,14 @@ C-----------------------------------------------
             NIN = LIST_INTER_SORTED(KK)
             ITIED = IPARI(85,NIN)
             DO i=1,sort_comm(nin)%nb_coarse_cell_r_request
-                call mpi_waitany( sort_comm(nin)%nb_coarse_cell_r_request,sort_comm(nin)%coarse_cell_r_request,index_r,status,ierror)
+                call mpi_waitany( sort_comm(nin)%nb_coarse_cell_r_request,
+     .    sort_comm(nin)%coarse_cell_r_request,index_r,status,ierror)
                 ID_PROC = SORT_COMM(NIN)%coarse_cell_r_index(index_r)
                 !CALL MPI_WAIT(ARRAY_REQUEST_COARSE_CELL(KK),STATUS,IERROR)  
                 ! M local / S remote
                 IF(IRECVFROM(NIN,LOC_PROC)>0.and.ISENDTO(NIN,ID_PROC)>0)
-     .            CALL CHECK_COARSE_GRID_2(NIN,SORT_COMM(NIN)%MAIN_COARSE_GRID,sort_comm(nin)%data_proc(id_proc)%coarse_cell,SORT_COMM,ITIED,index_r)
+     .            CALL CHECK_COARSE_GRID_2(NIN,SORT_COMM(NIN)%MAIN_COARSE_GRID,
+     .    sort_comm(nin)%data_proc(id_proc)%coarse_cell,SORT_COMM,ITIED,index_r)
                 ! S local / M remote                
                 my_address = NB_BOX_COARSE_GRID**3 + 1
                 IF(ISENDTO(NIN,LOC_PROC)>0.and.IRECVFROM(NIN,ID_PROC)>0) 
