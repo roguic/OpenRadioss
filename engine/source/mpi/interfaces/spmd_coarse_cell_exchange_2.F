@@ -184,19 +184,21 @@ C-----------------------------------------------
                       TOTAL_RCV_SIZE = TOTAL_RCV_SIZE + NB_BOX_COARSE_GRID**3 + 1
                       SORT_COMM(NIN)%nb_m_coarse_cell(I) = NB_BOX_COARSE_GRID**3
                     ENDIF
-                    if(ID_PROC==62) then
-                      print*,ncycle," To proc 61 :",NIN,ispmd,SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL(I)
+                    if(ID_PROC==60) then
+                      print*,ncycle," To proc 59 :",NIN,ispmd,SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL(I)
                     endif
                 ENDDO
 
-                  if(ispmd==61) then
+                  if(ispmd==59) then
                     do i=1,SORT_COMM(NIN)%PROC_NUMBER
                       ID_PROC = SORT_COMM(NIN)%PROC_LIST(I)
-                      print*,ncycle," Proc 61 Voxel S",NIN,i,SORT_COMM(NIN)%nb_s_coarse_cell(I),SORT_COMM(NIN)%address_s_coarse_cell(I)
+                      print*,ncycle," Proc 59 Voxel S",NIN,i,SORT_COMM(NIN)%nb_s_coarse_cell(I),
+     .                 SORT_COMM(NIN)%address_s_coarse_cell(I)
                     enddo
                     do i=1,SORT_COMM(NIN)%PROC_NUMBER
                       ID_PROC = SORT_COMM(NIN)%PROC_LIST(I)
-                      print*,ncycle," Proc 61 Voxel M",NIN,i,SORT_COMM(NIN)%nb_m_coarse_cell(I),SORT_COMM(NIN)%address_m_coarse_cell(I)
+                      print*,ncycle," Proc 59 Voxel M",NIN,i,SORT_COMM(NIN)%nb_m_coarse_cell(I),
+     .                 SORT_COMM(NIN)%address_m_coarse_cell(I)
                     enddo
                   endif
 
