@@ -130,6 +130,7 @@
         integer :: my_shift,my_address,my_address_2,my_value
         integer :: cell_x_id,cell_y_id,cell_z_id,index_proc
         integer :: local_s_buffer(2)
+        logical :: keep_comm
 !   --------------------------------------------------------------------
 
         loc_proc = ispmd + 1
@@ -181,28 +182,42 @@
             my_shift = 2*sort_comm(nin)%proc_number
             my_address = (i-1)*2+1
             if(id_proc/=loc_proc) then
-              sort_comm(nin)%nb_request_r_nb_cell_proc = sort_comm(nin)%nb_request_r_nb_cell_proc + 1
-              sort_comm(nin)%index_rcv(sort_comm(nin)%nb_request_r_nb_cell_proc) = i
-              call mpi_irecv(sort_comm(nin)%nb_cell_proc(my_address),2,MPI_INTEGER,it_spmd(id_proc), 
-     .         tag_1,SPMD_COMM_WORLD,sort_comm(nin)%request_r_nb_cell_proc(sort_comm(nin)%nb_request_r_nb_cell_proc),ierror)
+              keep_comm = .true.
+              IF(SORT_COMM(NIN)%PROC_NUMBER>NSPMD/2) THEN
+                IF(.NOT.SORT_COMM(NIN)%KEEP_PROC(i)) THEN
+                  local_s_buffer(1:2) = 0
+                  keep_comm = .false.
+                ENDIF
+              ENDIF
+              if(keep_comm) then
+                sort_comm(nin)%nb_request_r_nb_cell_proc = sort_comm(nin)%nb_request_r_nb_cell_proc + 1
+                sort_comm(nin)%index_rcv(sort_comm(nin)%nb_request_r_nb_cell_proc) = i
+                call mpi_irecv(sort_comm(nin)%nb_cell_proc(my_address),2,MPI_INTEGER,it_spmd(id_proc), 
+     .           tag_1,SPMD_COMM_WORLD,sort_comm(nin)%request_r_nb_cell_proc(sort_comm(nin)%nb_request_r_nb_cell_proc),ierror)
+              else
+                sort_comm(nin)%nb_cell_proc(my_address:my_address+1) = 0
+              endif
             endif
           enddo
 
           do i=1,sort_comm(nin)%proc_number
             id_proc = sort_comm(nin)%proc_list(i)
             if(id_proc/=loc_proc) then
-              sort_comm(nin)%nb_request_s_nb_cell_proc = sort_comm(nin)%nb_request_s_nb_cell_proc + 1
-              sort_comm(nin)%index_send(sort_comm(nin)%nb_request_s_nb_cell_proc) = i
               !MPI_ISEND(BUF, COUNT, DATATYPE, DEST, TAG, COMM, REQUEST, IERROR)
               local_s_buffer(1:2) = sort_comm(nin)%size_cell_list(1:2)
+              keep_comm = .true.
               IF(SORT_COMM(NIN)%PROC_NUMBER>NSPMD/2) THEN
                 IF(.NOT.SORT_COMM(NIN)%KEEP_PROC(i)) THEN
                   local_s_buffer(1:2) = 0
+                  keep_comm = .false.
                 ENDIF
-            ENDIF
-            
-              call mpi_isend(local_s_buffer,2,MPI_INTEGER,it_spmd(id_proc), 
+              ENDIF
+              if(keep_comm) then
+                sort_comm(nin)%nb_request_s_nb_cell_proc = sort_comm(nin)%nb_request_s_nb_cell_proc + 1
+                sort_comm(nin)%index_send(sort_comm(nin)%nb_request_s_nb_cell_proc) = i
+                call mpi_isend(local_s_buffer,2,MPI_INTEGER,it_spmd(id_proc), 
      .              tag_1,SPMD_COMM_WORLD,sort_comm(nin)%request_s_nb_cell_proc(sort_comm(nin)%nb_request_s_nb_cell_proc),ierror)
+              endif
             endif
           enddo
         endif
