@@ -220,7 +220,8 @@ C-----------------------------------------------
                 if(itied/=0) SORT_COMM(NIN)%KEEP_PROC(index_r)=.true.
               ENDDO
               DO i=1,sort_comm(nin)%nb_coarse_cell_s_request
-                call mpi_waitany( sort_comm(nin)%nb_coarse_cell_s_request,sort_comm(nin)%coarse_cell_s_request,index_r,status,ierror)
+                call mpi_waitany( sort_comm(nin)%nb_coarse_cell_s_request,
+     .          sort_comm(nin)%coarse_cell_s_request,index_r,status,ierror)
               ENDDO 
               !SORT_COMM(NIN)%KEEP_PROC(1:SORT_COMM(NIN)%PROC_NUMBER) = .true.
             ENDIF
