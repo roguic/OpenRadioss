@@ -139,6 +139,7 @@ C-----------------------------------------------
         ! -----------------------------
         ! compute the min/max position 
         IF(NB_INTER_SORTED>0) THEN
+          IF(ITASK == 0) CALL STARTIME(TIMERS,151)
             ! ---------------------
             ! compute the curv and the number of main nodes
             ! and the min/max position of main nodes
@@ -221,15 +222,17 @@ C-----------------------------------------------
         ! exchange of coarse_grid : waiting part + check if 2 processors need to communicate
            CALL SPMD_COARSE_CELL_EXCHANGE(NB_INTER_SORTED,LIST_INTER_SORTED,IRECVFROM,ISENDTO,2,
      .                       IPARI,SORT_COMM,NB_REQUEST_COARSE_CELL,ARRAY_REQUEST_COARSE_CELL,LIST_INTER_COARSE_CELL)
+          IF(ITASK == 0) CALL stoptime(TIMERS,151)
         !
           DO KK=1,NB_INTER_SORTED
             N = LIST_INTER_SORTED(KK)
+            IF(ITASK == 0) CALL STARTIME(TIMERS,152)
             ! -----------------------------
             ! exchange of number of colored cells (fine grid)
                     CALL SPMD_CELL_LIST_EXCHANGE(IRECVFROM,ISENDTO,1,WEIGHT,IAD_ELEM,
      .                 FR_ELEM,X,V,MS,TEMP,
      .                 KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI,
-     .                 N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ, GOT_PREVIEW)   !   size of cell list
+     .                 N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ, GOT_PREVIEW,TIMERS)   !   size of cell list
             ! -----------------------------
                 if(GOT_PREVIEW == 1) THEN
                 nrtm = IPARI(4,N)
@@ -238,7 +241,8 @@ C-----------------------------------------------
                 nmn = IPARI(6,N)
                 call compute_voxel_dimensions(nmn, nrtm, inter_struct(N))
                 endif
-
+                IF(ITASK == 0) CALL stoptime(TIMERS,152)
+                IF(ITASK == 0) CALL STARTIME(TIMERS,153)
             ! -----------------------------
             ! creation of voxel of secondary nodes 
             ! wait comm R "exchange of number of colored cells" & send/rcv the colored cells
@@ -246,8 +250,9 @@ C-----------------------------------------------
                     CALL SPMD_CELL_LIST_EXCHANGE(IRECVFROM,ISENDTO,2,WEIGHT,IAD_ELEM,
      .                 FR_ELEM,X,V,MS,TEMP,
      .                 KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI,
-     .                 N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ, GOT_PREVIEW) !   mpi wait size of cell list
-
+     .                 N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ, GOT_PREVIEW,TIMERS) !   mpi wait size of cell list
+                  IF(ITASK == 0) CALL stoptime(TIMERS,153)
+                  IF(ITASK == 0) CALL STARTIME(TIMERS,154)
             ! -----------------------------
                 if(GOT_PREVIEW == 1) THEN
                   CALL FILL_VOXEL_LOCAL_PARTIAL(nsn,intbuf_tab(n)%nsv,nsnr,nrtm,numnod,x,intbuf_tab(N)%stfns,INTER_STRUCT(N),
@@ -264,7 +269,8 @@ C-----------------------------------------------
                     CALL SPMD_CELL_LIST_EXCHANGE(IRECVFROM,ISENDTO,3,WEIGHT,IAD_ELEM,
      .                 FR_ELEM,X,V,MS,TEMP,
      .                 KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI,
-     .                 N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ, GOT_PREVIEW)
+     .                 N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ, GOT_PREVIEW,TIMERS)
+              IF(ITASK == 0) CALL stoptime(TIMERS,154)
 
              ENDDO
              ELSEIF (ITASK == 0) THEN
@@ -293,11 +299,12 @@ C-----------------------------------------------
             N = LIST_INTER_SORTED(KK)
             IF(NSPMD>1.AND.NEED_TO_SORT>0)THEN
                 IF(ITASK==0) THEN
+                  IF(ITASK == 0) CALL startime(TIMERS,155)
                     ! wait comm S "send/rcv the colored cells"
                     CALL SPMD_CELL_LIST_EXCHANGE(IRECVFROM,ISENDTO,4,WEIGHT,IAD_ELEM,
      .                 FR_ELEM,X,V,MS,TEMP,
      .                 KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI,
-     .                 N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ, GOT_PREVIEW)
+     .                 N,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZ, GOT_PREVIEW,TIMERS)
                     ! wait "number of secondary nodes needed by remote proc"
                 if(GOT_PREVIEW == 1) THEN
                    nrtm = IPARI(4,N) ;   nsn = IPARI(5,N) ; nsnr = IPARI(24,N) ; nmn = IPARI(6,N)
@@ -305,7 +312,8 @@ C-----------------------------------------------
      .                     SORT_COMM(N)%REQUEST_NB_R, SORT_COMM(N)%NBRECV_NB)
                 endif
 
-                    CALL SPMD_WAIT_NB(IRECVFROM,ISENDTO,N,SORT_COMM)    
+                    CALL SPMD_WAIT_NB(IRECVFROM,ISENDTO,N,SORT_COMM)  
+                    IF(ITASK == 0) CALL stoptime(TIMERS,155)  
                 ENDIF
                 CALL MY_BARRIER()
             ENDIF
@@ -472,6 +480,8 @@ C-----------------------------------------------
         endif     
       endif
       CALL MY_BARRIER()
+
+      call spmd_barrier()
 
         RETURN
         END SUBROUTINE INTER_PREPARE_SORT

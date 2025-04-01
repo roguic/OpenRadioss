@@ -37,7 +37,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
         SUBROUTINE SPMD_CELL_LIST_EXCHANGE(IRCVFROM,ISENDTO,MODE,WEIGHT,IAD_ELEM,
      .             FR_ELEM,X,V,MS,TEMP,
      .             KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI,
-     .             NIN,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZE, GOT_PREVIEW)
+     .             NIN,INTER_STRUCT,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZE, GOT_PREVIEW,TIMERS)
 !$COMMENT
 !       SPMD_CELL_LIST_EXCHANGE description :
 !       exchange of remote cell and preparation of comm "send/rcv the data of remote nodes"
@@ -58,6 +58,7 @@ C-----------------------------------------------
         USE INTER_SORTING_MOD
         USE INTER_STRUCT_MOD
         USE TRI7BOX
+        USE TIMER_MOD
 C-----------------------------------------------
 C   I m p l i c i t   T y p e s
 C-----------------------------------------------
@@ -77,6 +78,7 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
+        type(timer_) :: TIMERS
         INTEGER, INTENT(in) :: NIN
         INTEGER, INTENT(in) :: MODE
         INTEGER, INTENT(in) :: NODNX_SMS_SIZ ! size of NODNX_SMS
@@ -340,11 +342,13 @@ C-----------------------------------------------
                 IF(ITIED/=0.AND.IRCVFROM(NIN,REMOTE_PROC)/=0)  IS_EXCHANGE_NEEDED = .TRUE.   ! itied option : force the exchange    
                 !   -------------------------
                 IF(IS_EXCHANGE_NEEDED) THEN
+                  CALL STARTIME(TIMERS,156)
                     !   ISEND the number of secondary nodes
                     !   prepare the S buffer of secondary nodes (x, v, temp ...)
                     CALL SPMD_CELL_SIZE_EXCHANGE(IRCVFROM,ISENDTO,WEIGHT,
      .                IAD_ELEM,FR_ELEM,X,V,MS,TEMP,KINET,NODNX_SMS,ITAB,INTBUF_TAB,IPARI,NIN,REMOTE_PROC,
      .                ALREADY_SEND,INDEX_ALREADY_SEND,SORT_COMM,NODNX_SMS_SIZ,TEMP_SIZE)
+                  CALL STOPTIME(TIMERS,156)
                 ENDIF
                 !   ------------------------- 
             ENDDO
