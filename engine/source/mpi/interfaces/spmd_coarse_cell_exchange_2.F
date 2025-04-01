@@ -184,7 +184,22 @@ C-----------------------------------------------
                       TOTAL_RCV_SIZE = TOTAL_RCV_SIZE + NB_BOX_COARSE_GRID**3 + 1
                       SORT_COMM(NIN)%nb_m_coarse_cell(I) = NB_BOX_COARSE_GRID**3
                     ENDIF
+                    if(ID_PROC==62) then
+                      print*," To proc 61 :",ispmd,SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL(I)
+                    endif
                 ENDDO
+
+                  if(ispmd==61) then
+                    do i=1,SORT_COMM(NIN)%PROC_NUMBER
+                      ID_PROC = SORT_COMM(NIN)%PROC_LIST(I)
+                      print*," Proc 61 Voxel S",SORT_COMM(NIN)%nb_s_coarse_cell(I),SORT_COMM(NIN)%address_s_coarse_cell(I)
+                    enddo
+                    do i=1,SORT_COMM(NIN)%PROC_NUMBER
+                      ID_PROC = SORT_COMM(NIN)%PROC_LIST(I)
+                      print*," Proc 61 Voxel M",SORT_COMM(NIN)%nb_m_coarse_cell(I),SORT_COMM(NIN)%address_m_coarse_cell(I)
+                    enddo
+                  endif
+
 
                 IF(.NOT.ALLOCATED(SORT_COMM(NIN)%GLOBAL_COARSE_CELL ) )THEN                
                     ALLOCATE(SORT_COMM(NIN)%GLOBAL_COARSE_CELL(TOTAL_RCV_SIZE))
