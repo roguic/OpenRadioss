@@ -100,7 +100,7 @@ C-----------------------------------------------
                     endif
                       IJK = SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+J)
                       if(ijk>size(M_S_COARSE_GRID).or.ijk<=0) then
-                        print*,ncycle," PB 1:'",ispmd,id_proc,j,ijk,size(M_S_COARSE_GRID),my_size
+                        print*,ncycle," PB 1:'",ispmd,id_proc,DISPL+j,ijk,size(M_S_COARSE_GRID),my_size
                       endif
                       IF(M_S_COARSE_GRID(IJK)==1) KEEP_THIS_PROC = .TRUE.
                   ENDDO
@@ -143,7 +143,7 @@ C-----------------------------------------------
                   endif
                     IJK = SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+J)
                     if(ijk>size(M_S_COARSE_GRID).or.ijk<=0) then
-                      print*,ncycle," PB 1 S'",ispmd,id_proc,ijk,size(M_S_COARSE_GRID),my_size
+                      print*,ncycle," PB 1 S'",ispmd,id_proc,DISPL+J,ijk,size(M_S_COARSE_GRID),my_size
                     endif
                     IF(M_S_COARSE_GRID(IJK)==1) KEEP_THIS_PROC = .TRUE.
                 ENDDO
