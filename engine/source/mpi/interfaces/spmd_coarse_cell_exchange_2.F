@@ -139,7 +139,7 @@ C-----------------------------------------------
                       print*," Pb EnVoI s_BuFfEr S ",ispmd,iz,s_buffer(my_address+iz)
                     endif
                   enddo
-                  print*," Size S :",ispmd,nin,s_buffer(NB_BOX_COARSE_GRID**3 + 1)
+                  !print*," Size S :",ispmd,nin,s_buffer(NB_BOX_COARSE_GRID**3 + 1)
               endif
               next = 0               
                 
@@ -157,7 +157,7 @@ C-----------------------------------------------
                     enddo
                   enddo
                   s_buffer(my_address+NB_BOX_COARSE_GRID**3 + 1) = next
-                  print*," Size M :",ispmd,nin,s_buffer(my_address+NB_BOX_COARSE_GRID**3 + 1)
+                  !print*," Size M :",ispmd,nin,s_buffer(my_address+NB_BOX_COARSE_GRID**3 + 1)
                   do iz=1,s_buffer(my_address+NB_BOX_COARSE_GRID**3 + 1)
                     if(s_buffer(my_address+iz)<=0) then
                       print*," Pb EnVoI s_BuFfEr M ",ispmd,my_address+iz,s_buffer(my_address+iz)
