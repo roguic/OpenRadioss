@@ -257,8 +257,8 @@ C-----------------------------------------------
                 
                 NB_REQUEST_COARSE_CELL = NB_REQUEST_COARSE_CELL + 1
                 LIST_INTER_COARSE_CELL(NB_REQUEST_COARSE_CELL) = NIN
-                call MPI_ALLTOALL(s_buffer, TOTAL_SEND_SIZE, MPI_INTEGER, SORT_COMM(NIN)%GLOBAL_COARSE_CELL,TOTAL_RCV_SIZE,
-                MPI_INTEGER, SORT_COMM(NIN)%COMM, iy)
+                call MPI_ALLTOALL(s_buffer, TOTAL_SEND_SIZE, MPI_INTEGER, SORT_COMM(NIN)%GLOBAL_COARSE_CELL,TOTAL_SEND_SIZE,
+     .           MPI_INTEGER, SORT_COMM(NIN)%COMM, iy)
 !                CALL SPMD_IALLTOALLV_INT(s_buffer,
 !     .            SORT_COMM(NIN)%GLOBAL_COARSE_CELL,SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL,TOTAL_SEND_SIZE,
 !     .            SORT_COMM(NIN)%SEND_DISPLS_COARSE_CELL,
@@ -274,7 +274,7 @@ C-----------------------------------------------
         !            - check if current proc and remote proc need to communicate
         IF(MODE==2) THEN
             DO KK=1,NB_REQUEST_COARSE_CELL
-                CALL MPI_WAIT(ARRAY_REQUEST_COARSE_CELL(KK),STATUS,IERROR)  
+                !CALL MPI_WAIT(ARRAY_REQUEST_COARSE_CELL(KK),STATUS,IERROR)  
                 NIN = LIST_INTER_COARSE_CELL(KK)
                 ITIED = IPARI(85,NIN)
                 ! M local / S remote
