@@ -173,17 +173,17 @@ C-----------------------------------------------
                     ! Remote proc has NMN --> need to send S node voxel
                     SORT_COMM(NIN)%address_s_coarse_cell(I) = TOTAL_RCV_SIZE
                     SORT_COMM(NIN)%nb_s_coarse_cell(I) = 0
-                    IF(ISENDTO(NIN,ID_PROC)>0.and.IRECVFROM(NIN,LOC_PROC)>0) THEN   !   nsn of remote proc >0 + m local proc : Remote proc S --> local proc M
+                    !IF(ISENDTO(NIN,ID_PROC)>0.and.IRECVFROM(NIN,LOC_PROC)>0) THEN   !   nsn of remote proc >0 + m local proc : Remote proc S --> local proc M
                         TOTAL_RCV_SIZE = TOTAL_RCV_SIZE + NB_BOX_COARSE_GRID**3 + 1
                         SORT_COMM(NIN)%nb_s_coarse_cell(I) = NB_BOX_COARSE_GRID**3
-                    ENDIF
+                    !ENDIF
                     ! Remote proc has NSN --> need to send M node voxel
                     SORT_COMM(NIN)%nb_m_coarse_cell(I) = 0
                     SORT_COMM(NIN)%address_m_coarse_cell(I) = TOTAL_RCV_SIZE
-                    IF(IRECVFROM(NIN,ID_PROC)>0.and.ISENDTO(NIN,LOC_PROC)>0) THEN   !   nmn of remote proc >0 + s local proc : Remote proc M --> local proc S
+                    !IF(IRECVFROM(NIN,ID_PROC)>0.and.ISENDTO(NIN,LOC_PROC)>0) THEN   !   nmn of remote proc >0 + s local proc : Remote proc M --> local proc S
                       TOTAL_RCV_SIZE = TOTAL_RCV_SIZE + NB_BOX_COARSE_GRID**3 + 1
                       SORT_COMM(NIN)%nb_m_coarse_cell(I) = NB_BOX_COARSE_GRID**3
-                    ENDIF
+                    !ENDIF
                     if(ID_PROC==60) then
                       print*,ncycle," To proc 59 :",NIN,ispmd,SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL(I)
                     endif
@@ -210,8 +210,10 @@ C-----------------------------------------------
                 SORT_COMM(NIN)%GLOBAL_COARSE_CELL(:) = -1234567
                 SORT_COMM(NIN)%SIZE_GLOBAL_COARSE_CELL = TOTAL_RCV_SIZE
                 TOTAL_SEND_SIZE = 0
-                IF(ISENDTO(NIN,LOC_PROC)>0) TOTAL_SEND_SIZE = NB_BOX_COARSE_GRID**3 + 1
-                IF(IRECVFROM(NIN,LOC_PROC)>0) TOTAL_SEND_SIZE = TOTAL_SEND_SIZE + NB_BOX_COARSE_GRID**3 + 1
+!                IF(ISENDTO(NIN,LOC_PROC)>0) TOTAL_SEND_SIZE = NB_BOX_COARSE_GRID**3 + 1
+!                IF(IRECVFROM(NIN,LOC_PROC)>0) TOTAL_SEND_SIZE = TOTAL_SEND_SIZE + NB_BOX_COARSE_GRID**3 + 1
+                TOTAL_SEND_SIZE = NB_BOX_COARSE_GRID**3 + 1
+                TOTAL_SEND_SIZE = TOTAL_SEND_SIZE + NB_BOX_COARSE_GRID**3 + 1
                 
                 allocate(s_buffer(TOTAL_SEND_SIZE))
                 s_buffer(:) = 0
@@ -255,13 +257,14 @@ C-----------------------------------------------
                 
                 NB_REQUEST_COARSE_CELL = NB_REQUEST_COARSE_CELL + 1
                 LIST_INTER_COARSE_CELL(NB_REQUEST_COARSE_CELL) = NIN
-
-                CALL SPMD_IALLTOALLV_INT(s_buffer,
-     .            SORT_COMM(NIN)%GLOBAL_COARSE_CELL,SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL,TOTAL_SEND_SIZE,
-     .            SORT_COMM(NIN)%SEND_DISPLS_COARSE_CELL,
-     .            TOTAL_RCV_SIZE,SORT_COMM(NIN)%RCV_SIZE_COARSE_CELL,
-     .            SORT_COMM(NIN)%RCV_DISPLS_COARSE_CELL,ARRAY_REQUEST_COARSE_CELL(NB_REQUEST_COARSE_CELL),
-     .            SORT_COMM(NIN)%COMM,SORT_COMM(NIN)%PROC_NUMBER)
+                call MPI_ALLTOALL(s_buffer, TOTAL_SEND_SIZE, MPI_INTEGER, SORT_COMM(NIN)%GLOBAL_COARSE_CELL,TOTAL_RCV_SIZE,
+                MPI_INTEGER, SORT_COMM(NIN)%COMM, iy)
+!                CALL SPMD_IALLTOALLV_INT(s_buffer,
+!     .            SORT_COMM(NIN)%GLOBAL_COARSE_CELL,SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL,TOTAL_SEND_SIZE,
+!     .            SORT_COMM(NIN)%SEND_DISPLS_COARSE_CELL,
+!     .            TOTAL_RCV_SIZE,SORT_COMM(NIN)%RCV_SIZE_COARSE_CELL,
+!     .            SORT_COMM(NIN)%RCV_DISPLS_COARSE_CELL,ARRAY_REQUEST_COARSE_CELL(NB_REQUEST_COARSE_CELL),
+!     .            SORT_COMM(NIN)%COMM,SORT_COMM(NIN)%PROC_NUMBER)
                 deallocate(s_buffer )
             ENDIF               
           ENDDO
