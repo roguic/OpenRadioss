@@ -185,18 +185,18 @@ C-----------------------------------------------
                       SORT_COMM(NIN)%nb_m_coarse_cell(I) = NB_BOX_COARSE_GRID**3
                     ENDIF
                     if(ID_PROC==62) then
-                      print*," To proc 61 :",NIN,ispmd,SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL(I)
+                      print*,ncycle," To proc 61 :",NIN,ispmd,SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL(I)
                     endif
                 ENDDO
 
                   if(ispmd==61) then
                     do i=1,SORT_COMM(NIN)%PROC_NUMBER
                       ID_PROC = SORT_COMM(NIN)%PROC_LIST(I)
-                      print*," Proc 61 Voxel S",NIN,i,SORT_COMM(NIN)%nb_s_coarse_cell(I),SORT_COMM(NIN)%address_s_coarse_cell(I)
+                      print*,ncycle," Proc 61 Voxel S",NIN,i,SORT_COMM(NIN)%nb_s_coarse_cell(I),SORT_COMM(NIN)%address_s_coarse_cell(I)
                     enddo
                     do i=1,SORT_COMM(NIN)%PROC_NUMBER
                       ID_PROC = SORT_COMM(NIN)%PROC_LIST(I)
-                      print*," Proc 61 Voxel M",NIN,i,SORT_COMM(NIN)%nb_m_coarse_cell(I),SORT_COMM(NIN)%address_m_coarse_cell(I)
+                      print*,ncycle," Proc 61 Voxel M",NIN,i,SORT_COMM(NIN)%nb_m_coarse_cell(I),SORT_COMM(NIN)%address_m_coarse_cell(I)
                     enddo
                   endif
 
