@@ -165,18 +165,19 @@ C-----------------------------------------------
                     ENDIF
                     SORT_COMM(NIN)%RCV_DISPLS_COARSE_CELL(I) = TOTAL_RCV_SIZE
 
-                    SORT_COMM(NIN)%nb_s_coarse_cell(I) = 0
-                    SORT_COMM(NIN)%address_s_coarse_cell(I) = TOTAL_RCV_SIZE
-                    IF(ISENDTO(NIN,ID_PROC)>0) THEN   !   nsn of remote proc >0
-                      TOTAL_RCV_SIZE = TOTAL_RCV_SIZE + NB_BOX_COARSE_GRID**3 + 1
-                      SORT_COMM(NIN)%nb_s_coarse_cell(I) = NB_BOX_COARSE_GRID**3
-                    ENDIF
-
+                    ! Remote proc has NMN --> need to send S node voxel
                     SORT_COMM(NIN)%address_m_coarse_cell(I) = TOTAL_RCV_SIZE
                     SORT_COMM(NIN)%nb_m_coarse_cell(I) = 0
                     IF(IRECVFROM(NIN,ID_PROC)>0) THEN   !   nmn of remote proc >0
                         TOTAL_RCV_SIZE = TOTAL_RCV_SIZE + NB_BOX_COARSE_GRID**3 + 1
                         SORT_COMM(NIN)%nb_m_coarse_cell(I) = NB_BOX_COARSE_GRID**3
+                    ENDIF
+                    ! Remote proc has NSN --> need to send M node voxel
+                    SORT_COMM(NIN)%nb_s_coarse_cell(I) = 0
+                    SORT_COMM(NIN)%address_s_coarse_cell(I) = TOTAL_RCV_SIZE
+                    IF(ISENDTO(NIN,ID_PROC)>0) THEN   !   nsn of remote proc >0
+                      TOTAL_RCV_SIZE = TOTAL_RCV_SIZE + NB_BOX_COARSE_GRID**3 + 1
+                      SORT_COMM(NIN)%nb_s_coarse_cell(I) = NB_BOX_COARSE_GRID**3
                     ENDIF
                 ENDDO
 
@@ -190,12 +191,14 @@ C-----------------------------------------------
                 IF(IRECVFROM(NIN,LOC_PROC)>0) TOTAL_SEND_SIZE = TOTAL_SEND_SIZE + NB_BOX_COARSE_GRID**3 + 1
                 allocate(s_buffer(TOTAL_SEND_SIZE))
                 s_buffer(:) = 0
+                ! Initialization of s_buffer with S voxel
                 IF(ISENDTO(NIN,LOC_PROC)>0) then
                   s_buffer(1:NB_BOX_COARSE_GRID**3 + 1) = SORT_COMM(NIN)%COARSE_GRID(1:NB_BOX_COARSE_GRID**3 + 1)
                 endif
                 next = 0
                 my_address = NB_BOX_COARSE_GRID**3 + 1
                 
+                ! Initialization of s_buffer with M voxel
                 IF(IRECVFROM(NIN,LOC_PROC)>0) then
                   do iz=1,NB_BOX_COARSE_GRID                    
                     do iy=1,NB_BOX_COARSE_GRID
