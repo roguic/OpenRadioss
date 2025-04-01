@@ -200,24 +200,30 @@ C-----------------------------------------------
           DO KK=1,NB_INTER_SORTED
             NIN = LIST_INTER_SORTED(KK)
             ITIED = IPARI(85,NIN)
-            DO i=1,sort_comm(nin)%nb_coarse_cell_r_request
-                call mpi_waitany( sort_comm(nin)%nb_coarse_cell_r_request,
+            IF(SORT_COMM(NIN)%PROC_NUMBER>NSPMD/2) THEN
+              DO i=1,sort_comm(nin)%nb_coarse_cell_r_request
+                  call mpi_waitany( sort_comm(nin)%nb_coarse_cell_r_request,
      .    sort_comm(nin)%coarse_cell_r_request,index_r,status,ierror)
-                ID_PROC = SORT_COMM(NIN)%coarse_cell_r_index(index_r)
-                !CALL MPI_WAIT(ARRAY_REQUEST_COARSE_CELL(KK),STATUS,IERROR)  
-                ! M local / S remote
-                IF(IRECVFROM(NIN,LOC_PROC)>0.and.ISENDTO(NIN,ID_PROC)>0)
+                  index_r = sort_comm(nin)%coarse_cell_r_index(index_r)
+                  ID_PROC =  SORT_COMM(NIN)%PROC_LIST(index_r)
+                  
+                  !CALL MPI_WAIT(ARRAY_REQUEST_COARSE_CELL(KK),STATUS,IERROR)  
+                  ! M local / S remote
+                  IF(IRECVFROM(NIN,LOC_PROC)>0.and.ISENDTO(NIN,ID_PROC)>0)
      .            CALL CHECK_COARSE_GRID_2(NIN,SORT_COMM(NIN)%MAIN_COARSE_GRID,
      .    sort_comm(nin)%data_proc(id_proc)%coarse_cell,SORT_COMM,ITIED,index_r)
-                ! S local / M remote                
-                my_address = NB_BOX_COARSE_GRID**3 + 1
-                IF(ISENDTO(NIN,LOC_PROC)>0.and.IRECVFROM(NIN,ID_PROC)>0) 
-     .             CALL CHECK_COARSE_GRID_2(NIN,SORT_COMM(NIN)%SECOND_COARSE_GRID,
+                  ! S local / M remote                
+                  my_address = NB_BOX_COARSE_GRID**3 + 1
+                  IF(ISENDTO(NIN,LOC_PROC)>0.and.IRECVFROM(NIN,ID_PROC)>0) 
+     .              CALL CHECK_COARSE_GRID_2(NIN,SORT_COMM(NIN)%SECOND_COARSE_GRID,
      .                    sort_comm(nin)%data_proc(id_proc)%coarse_cell(my_address+1),SORT_COMM,ITIED,index_r)
-            ENDDO
-            DO i=1,sort_comm(nin)%nb_coarse_cell_s_request
-              call mpi_waitany( sort_comm(nin)%nb_coarse_cell_s_request,sort_comm(nin)%coarse_cell_s_request,index_r,status,ierror)
-            ENDDO 
+                if(itied/=0) SORT_COMM(NIN)%KEEP_PROC(index_r)=.true.
+              ENDDO
+              DO i=1,sort_comm(nin)%nb_coarse_cell_s_request
+                call mpi_waitany( sort_comm(nin)%nb_coarse_cell_s_request,sort_comm(nin)%coarse_cell_s_request,index_r,status,ierror)
+              ENDDO 
+              !SORT_COMM(NIN)%KEEP_PROC(1:SORT_COMM(NIN)%PROC_NUMBER) = .true.
+            ENDIF
           ENDDO        
         ENDIF
 !   -------------------------
