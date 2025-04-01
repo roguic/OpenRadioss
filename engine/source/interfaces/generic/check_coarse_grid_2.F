@@ -27,7 +27,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
       !||--- uses       -----------------------------------------------------
       !||    inter_sorting_mod           ../engine/share/modules/inter_sorting_mod.F
       !||====================================================================
-        SUBROUTINE CHECK_COARSE_GRID_2(mode,NIN,M_S_COARSE_GRID,SORT_COMM,ITIED)
+        SUBROUTINE CHECK_COARSE_GRID_2(NIN,M_S_COARSE_GRID,remote_M_S_COARSE_GRID,SORT_COMM,ITIED,index_proc)
 !$COMMENT
 !       CHECK_COARSE_GRID description :
 !       for a given interface, check if the correct processor needs to communicate with a remote processor
@@ -55,103 +55,44 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-        INTEGER, INTENT(in) :: NIN,mode
-        INTEGER, INTENT(in) :: ITIED
+        INTEGER, INTENT(in) :: NIN
+        INTEGER, INTENT(in) :: ITIED,index_proc
         INTEGER, DIMENSION(NB_BOX_COARSE_GRID**3), INTENT(in) :: M_S_COARSE_GRID
+        INTEGER, DIMENSION(NB_BOX_COARSE_GRID**3+1), INTENT(in) :: remote_M_S_COARSE_GRID
         TYPE(sorting_comm_type), DIMENSION(NINTER), INTENT(inout) :: SORT_COMM   ! structure for interface sorting comm
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------       
         LOGICAL :: KEEP_THIS_PROC,BREAK_
-        INTEGER :: I,J,IJK
+        INTEGER :: J,IJK
         INTEGER :: ID_PROC,DISPL,my_size  
 !   ----------------------------------------
 
-        !   allocatio of KEEP_PROC : true if need to send/rcv to proc P
-        IF(.NOT.ALLOCATED(SORT_COMM(NIN)%KEEP_PROC)) THEN
-            ALLOCATE(SORT_COMM(NIN)%KEEP_PROC(SORT_COMM(NIN)%PROC_NUMBER) )
+        ! M local / S remote
+        !   loop over the processor of the interface : keep P if at least 1 common cell between P and current proc
+        KEEP_THIS_PROC = .FALSE.
+        BREAK_ = .FALSE.       
+
+        IF(.NOT.BREAK_) THEN
+          IF(remote_M_S_COARSE_GRID(NB_BOX_COARSE_GRID**3+1)==0) BREAK_ = .TRUE.
         ENDIF
-        if(mode==1) then
-          ! M local / S remote
-          !   loop over the processor of the interface : keep P if at least 1 common cell between P and current proc
-          DO I=1,SORT_COMM(NIN)%PROC_NUMBER
-              ID_PROC = SORT_COMM(NIN)%PROC_LIST(I)
-              DISPL = SORT_COMM(NIN)%address_s_coarse_cell(I)
-              SORT_COMM(NIN)%KEEP_PROC(I) = .FALSE.
-              KEEP_THIS_PROC = .FALSE.
-              BREAK_ = .FALSE.
-              J = 1
-              !   no cell from P --> keep = false
-              IF(SORT_COMM(NIN)%nb_s_coarse_cell(I)==0) BREAK_ = .TRUE.
 
-              IF(.NOT.BREAK_) THEN
-                  IF(SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+NB_BOX_COARSE_GRID**3+1)==0) BREAK_ = .TRUE.
-              ENDIF
-
-              IF(.NOT.BREAK_) THEN
-                  ! loop over the cell of P and check if 1 common cell
-                  my_size = SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+NB_BOX_COARSE_GRID**3+1)
-                  if(my_size>4**3.or.my_size<0) then
+        IF(.NOT.BREAK_) THEN
+          ! loop over the cell of P and check if 1 common cell
+          my_size = remote_M_S_COARSE_GRID(NB_BOX_COARSE_GRID**3+1)
+          if(my_size>4**3.or.my_size<0) then
                     print*,ncycle," PB -1 ",ispmd,id_proc,my_size
-                  endif
-                  DO J=1,my_size
-                    if(DISPL+J>size(SORT_COMM(NIN)%GLOBAL_COARSE_CELL)) then
-                      print*,ncycle," PB 0:'",ispmd,id_proc,DISPL,J,size(SORT_COMM(NIN)%GLOBAL_COARSE_CELL)
-                    endif
-                      IJK = SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+J)
-                      if(ijk>size(M_S_COARSE_GRID).or.ijk<=0) then
-                        print*,ncycle," PB 1:'",ispmd,id_proc,DISPL+j,ijk,size(M_S_COARSE_GRID),my_size
-                      endif
-                      IF(M_S_COARSE_GRID(IJK)==1) KEEP_THIS_PROC = .TRUE.
-                  ENDDO
-              ENDIF
-              IF(ITIED/=0) KEEP_THIS_PROC=.TRUE.
-              IF(KEEP_THIS_PROC) SORT_COMM(NIN)%KEEP_PROC(I) = .TRUE.
+          endif
+          DO J=1,my_size
+            IJK = remote_M_S_COARSE_GRID(J)
+            if(ijk<=0.or.ijk>size(M_S_COARSE_GRID)) then
+              print*," pb 1!",ispmd,ijk,size(M_S_COARSE_GRID)
+            endif
+            IF(M_S_COARSE_GRID(IJK)/=0) KEEP_THIS_PROC = .TRUE.
           ENDDO
-        else
-          ! S local / M remote
-          !   loop over the processor of the interface : keep P if at least 1 common cell between P and current proc
-          DO I=1,SORT_COMM(NIN)%PROC_NUMBER
-            ID_PROC = SORT_COMM(NIN)%PROC_LIST(I)
-            DISPL = SORT_COMM(NIN)%address_m_coarse_cell(I)
-            KEEP_THIS_PROC = .FALSE.
-            BREAK_ = .FALSE.
-            
-            IF(SORT_COMM(NIN)%KEEP_PROC(I)) then
-              KEEP_THIS_PROC = .TRUE.
-              BREAK_ = .TRUE.
-            ENDIF
-
-            J = 1
-            !   no cell from P --> keep = false
-            IF(SORT_COMM(NIN)%nb_m_coarse_cell(I)==0) BREAK_ = .TRUE.
-
-            IF(.NOT.BREAK_) THEN
-              my_size = SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+NB_BOX_COARSE_GRID**3+1)
-              IF(my_size==0) BREAK_ = .TRUE.
-            ENDIF
-
-            IF(.NOT.BREAK_) THEN
-                ! loop over the cell of P and check if 1 common cell
-                my_size = SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+NB_BOX_COARSE_GRID**3+1)
-                if(my_size>4**3.or.my_size<0) then
-                  print*,ncycle," PB -1 S ",ispmd,id_proc,my_size
-                endif
-                DO J=1,my_size
-                  if(DISPL+J>size(SORT_COMM(NIN)%GLOBAL_COARSE_CELL)) then
-                    print*,ncycle," PB 0 S'",ispmd,id_proc,DISPL,J,size(SORT_COMM(NIN)%GLOBAL_COARSE_CELL)
-                  endif
-                    IJK = SORT_COMM(NIN)%GLOBAL_COARSE_CELL(DISPL+J)
-                    if(ijk>size(M_S_COARSE_GRID).or.ijk<=0) then
-                      print*,ncycle," PB 1 S'",ispmd,id_proc,DISPL+J,ijk,size(M_S_COARSE_GRID),my_size
-                    endif
-                    IF(M_S_COARSE_GRID(IJK)==1) KEEP_THIS_PROC = .TRUE.
-                ENDDO
-            ENDIF
-            IF(ITIED/=0) KEEP_THIS_PROC=.TRUE.
-            IF(KEEP_THIS_PROC) SORT_COMM(NIN)%KEEP_PROC(I) = .TRUE.
-        ENDDO
-        endif
+        ENDIF
+        IF(ITIED/=0) KEEP_THIS_PROC=.TRUE.
+        IF(KEEP_THIS_PROC) SORT_COMM(NIN)%KEEP_PROC(index_proc) = .TRUE.
         !   ------------------
         RETURN
         END SUBROUTINE CHECK_COARSE_GRID_2

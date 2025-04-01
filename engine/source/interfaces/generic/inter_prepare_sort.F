@@ -423,9 +423,9 @@ C-----------------------------------------------
         IF(NSPMD>1.AND.NEED_TO_SORT>0)THEN
           IF(ITASK==0) THEN
               CALL SPMD_COARSE_CELL_EXCHANGE_2(NB_INTER_SORTED,LIST_INTER_SORTED,IRECVFROM,ISENDTO,1,
-     .                       IPARI,SORT_COMM,NB_REQUEST_COARSE_CELL,ARRAY_REQUEST_COARSE_CELL,LIST_INTER_COARSE_CELL)
+     .                       IPARI,SORT_COMM)
               CALL SPMD_COARSE_CELL_EXCHANGE_2(NB_INTER_SORTED,LIST_INTER_SORTED,IRECVFROM,ISENDTO,2,
-     .                       IPARI,SORT_COMM,NB_REQUEST_COARSE_CELL,ARRAY_REQUEST_COARSE_CELL,LIST_INTER_COARSE_CELL)
+     .                       IPARI,SORT_COMM)
           ENDIF
         ENDIF
         ! -----------------------------

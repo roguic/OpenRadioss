@@ -83,6 +83,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
             TYPE buffer_comm_type
                 !   buffer for communication of position/velocity
                 logical :: comm_needed
+                integer, dimension(:), allocatable :: coarse_cell
                 integer, dimension(:), allocatable :: remote_cell
                 integer, dimension(:), allocatable :: irem
                 my_real, dimension(:), allocatable :: xrem
@@ -109,6 +110,13 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
                 INTEGER, DIMENSION(:), ALLOCATABLE :: nb_m_coarse_cell
                 INTEGER, DIMENSION(:), ALLOCATABLE :: address_s_coarse_cell
                 INTEGER, DIMENSION(:), ALLOCATABLE :: nb_s_coarse_cell
+
+                integer :: nb_coarse_cell_r_request
+                integer, dimension(:), allocatable :: coarse_cell_r_request
+                integer, dimension(:), allocatable :: coarse_cell_r_index
+                integer :: nb_coarse_cell_s_request
+                integer, dimension(:), allocatable :: coarse_cell_s_request
+                integer, dimension(:), allocatable :: coarse_cell_s_index
 
                 LOGICAL, DIMENSION(:), ALLOCATABLE :: KEEP_PROC                 ! boolean, true if current proc and P proc need to communicate 
                 !   -----------------------------

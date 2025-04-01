@@ -31,7 +31,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
       !||    inter_sorting_mod           ../engine/share/modules/inter_sorting_mod.F
       !||====================================================================
         SUBROUTINE SPMD_COARSE_CELL_EXCHANGE_2(NB_INTER_SORTED,LIST_INTER_SORTED,IRECVFROM,ISENDTO,MODE,
-     .              IPARI,SORT_COMM,NB_REQUEST_COARSE_CELL,ARRAY_REQUEST_COARSE_CELL,LIST_INTER_COARSE_CELL)
+     .              IPARI,SORT_COMM)
 !$COMMENT
 !       SPMD_COARSE_CELL_EXCHANGE description :
 !       for large interfaces : communication of coarse cells with alltoll mpi comm 
@@ -69,9 +69,9 @@ C-----------------------------------------------
         INTEGER, DIMENSION(NINTER+1,NSPMD+1), INTENT(in) :: ISENDTO,IRECVFROM ! array for S and R : isendto = nsn ; IRECVFROM = nmn
         INTEGER, DIMENSION(NPARI,NINTER), INTENT(in) ::  IPARI !   interface data
         TYPE(sorting_comm_type), DIMENSION(NINTER), INTENT(inout) :: SORT_COMM   ! structure for interface sorting comm
-        INTEGER, INTENT(inout) :: NB_REQUEST_COARSE_CELL ! number of request
-        INTEGER, DIMENSION(NB_INTER_SORTED), INTENT(inout) :: ARRAY_REQUEST_COARSE_CELL ! array of request
-        INTEGER, DIMENSION(NB_INTER_SORTED), INTENT(inout) :: LIST_INTER_COARSE_CELL    ! list of interface
+        !INTEGER, INTENT(inout) :: NB_REQUEST_COARSE_CELL ! number of request
+        !INTEGER, DIMENSION(NB_INTER_SORTED), INTENT(inout) :: ARRAY_REQUEST_COARSE_CELL ! array of request
+        !INTEGER, DIMENSION(NB_INTER_SORTED), INTENT(inout) :: LIST_INTER_COARSE_CELL    ! list of interface
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
@@ -87,139 +87,50 @@ C-----------------------------------------------
         INTEGER :: COUNT_COMM_SIZE_CELL,ID_COMM
         INTEGER :: ITIED
         integer, dimension(:), allocatable :: s_buffer
-        integer :: my_address,my_value,next,ix,iy,iz
+        integer :: my_address,my_value,next,ix,iy,iz,index_r
+        integer, parameter :: tag = 13012
 !   ----------------------------------------
         LOC_PROC = ISPMD + 1
         !   -------------------------
         !   MODE=1 : alltoall comm --> exchange of coarse cell
         IF(MODE==1) THEN
-          NB_REQUEST_COARSE_CELL = 0
           DO KK=1,NB_INTER_SORTED
             NIN = LIST_INTER_SORTED(KK)
-            ARRAY_REQUEST_COARSE_CELL(KK) = MPI_REQUEST_NULL
             IF(SORT_COMM(NIN)%PROC_NUMBER>NSPMD/2) THEN
-                IF(IRECVFROM(NIN,LOC_PROC)==0.AND.ISENDTO(NIN,LOC_PROC)==0) CYCLE
 
-                IF(.NOT.ALLOCATED(SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL)) THEN
+              IF(.NOT.ALLOCATED(SORT_COMM(NIN)%KEEP_PROC)) THEN
+                ALLOCATE(SORT_COMM(NIN)%KEEP_PROC(SORT_COMM(NIN)%PROC_NUMBER) )
+              ENDIF
+              SORT_COMM(NIN)%KEEP_PROC(1:SORT_COMM(NIN)%PROC_NUMBER) = .FALSE.
+              IF(IRECVFROM(NIN,LOC_PROC)==0.AND.ISENDTO(NIN,LOC_PROC)==0) CYCLE
+
+              SORT_COMM(NIN)%nb_coarse_cell_r_request = 0
+              IF(.NOT.ALLOCATED(SORT_COMM(NIN)%coarse_cell_r_request)) THEN
+                MY_SIZE = SORT_COMM(NIN)%PROC_NUMBER
+                ALLOCATE(SORT_COMM(NIN)%coarse_cell_r_request(MY_SIZE))
+              ENDIF
+
+              IF(.NOT.ALLOCATED(SORT_COMM(NIN)%coarse_cell_r_index)) THEN
+                  MY_SIZE = SORT_COMM(NIN)%PROC_NUMBER
+                  ALLOCATE(SORT_COMM(NIN)%coarse_cell_r_index(MY_SIZE))
+              ENDIF
+
+              SORT_COMM(NIN)%nb_coarse_cell_s_request = 0
+              IF(.NOT.ALLOCATED(SORT_COMM(NIN)%coarse_cell_s_request)) THEN
                     MY_SIZE = SORT_COMM(NIN)%PROC_NUMBER
-                    ALLOCATE(SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL(MY_SIZE))
-                ENDIF
+                    ALLOCATE(SORT_COMM(NIN)%coarse_cell_s_request(MY_SIZE))
+              ENDIF
+              IF(.NOT.ALLOCATED(SORT_COMM(NIN)%coarse_cell_s_index)) THEN
+                  MY_SIZE = SORT_COMM(NIN)%PROC_NUMBER
+                 ALLOCATE(SORT_COMM(NIN)%coarse_cell_s_index(MY_SIZE))
+              ENDIF
 
-                IF(.NOT.ALLOCATED(SORT_COMM(NIN)%RCV_SIZE_COARSE_CELL)) THEN
-                    MY_SIZE = SORT_COMM(NIN)%PROC_NUMBER
-                    ALLOCATE(SORT_COMM(NIN)%RCV_SIZE_COARSE_CELL(MY_SIZE))
-                ENDIF
-
-                IF(.NOT.ALLOCATED(SORT_COMM(NIN)%SEND_DISPLS_COARSE_CELL)) THEN
-                    MY_SIZE = SORT_COMM(NIN)%PROC_NUMBER
-                    ALLOCATE(SORT_COMM(NIN)%SEND_DISPLS_COARSE_CELL(MY_SIZE))
-                ENDIF
-
-                IF(.NOT.ALLOCATED(SORT_COMM(NIN)%RCV_DISPLS_COARSE_CELL)) THEN
-                    MY_SIZE = SORT_COMM(NIN)%PROC_NUMBER
-                    ALLOCATE(SORT_COMM(NIN)%RCV_DISPLS_COARSE_CELL(MY_SIZE))
-                ENDIF
-
-                if(.not.allocated(SORT_COMM(NIN)%nb_s_coarse_cell)) then
-                  my_size = sort_comm(nin)%proc_number
-                  allocate(SORT_COMM(NIN)%nb_s_coarse_cell(my_size))
-                endif
-
-                if(.not.allocated(SORT_COMM(NIN)%address_s_coarse_cell)) then
-                  my_size = sort_comm(nin)%proc_number
-                  allocate(SORT_COMM(NIN)%address_s_coarse_cell(my_size))
-                endif
-
-                if(.not.allocated(SORT_COMM(NIN)%nb_m_coarse_cell)) then
-                  my_size = sort_comm(nin)%proc_number
-                  allocate(SORT_COMM(NIN)%nb_m_coarse_cell(my_size))
-                endif
-
-                if(.not.allocated(SORT_COMM(NIN)%address_m_coarse_cell)) then
-                  my_size = sort_comm(nin)%proc_number
-                  allocate(SORT_COMM(NIN)%address_m_coarse_cell(my_size))
-                endif
-
-!isendto = nsn
-!IRECVFROM = nmn
-                TOTAL_RCV_SIZE = 0
-                DO I=1,SORT_COMM(NIN)%PROC_NUMBER
-                    ID_PROC = SORT_COMM(NIN)%PROC_LIST(I)
-                    SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL(I) = 0
-                    IF(ISENDTO(NIN,LOC_PROC)>0.and.IRECVFROM(NIN,ID_PROC)>0) THEN    !   nsn of current proc + nmn of r proc
-                      SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL(I) = SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL(I) + 
-     .                    NB_BOX_COARSE_GRID**3 + 1
-                    ENDIF
-
-                    IF(IRECVFROM(NIN,LOC_PROC)>0.and.ISENDTO(NIN,ID_PROC)>0) THEN    !   nmn of current proc + nsn of r proc
-                      SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL(I) = SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL(I) + 
-     .                    NB_BOX_COARSE_GRID**3 + 1
-                    ENDIF
-
-                    SORT_COMM(NIN)%SEND_DISPLS_COARSE_CELL(I) = 0
-
-
-
-                    SORT_COMM(NIN)%RCV_SIZE_COARSE_CELL(I) = 0
-                    IF(IRECVFROM(NIN,ID_PROC)>0.and.ISENDTO(NIN,LOC_PROC)>0) THEN   !   nmn of remote proc >0 + local s proc
-                        SORT_COMM(NIN)%RCV_SIZE_COARSE_CELL(I) = NB_BOX_COARSE_GRID**3 + 1
-                    ENDIF
-                    IF(ISENDTO(NIN,ID_PROC)>0.and.IRECVFROM(NIN,LOC_PROC)>0) THEN   !   nsn of remote proc >0 + nmn of local proc
-                      SORT_COMM(NIN)%RCV_SIZE_COARSE_CELL(I) = SORT_COMM(NIN)%RCV_SIZE_COARSE_CELL(I) + 
-     .                                                         NB_BOX_COARSE_GRID**3 + 1
-                    ENDIF
-                    SORT_COMM(NIN)%RCV_DISPLS_COARSE_CELL(I) = TOTAL_RCV_SIZE
-
-                    ! Remote proc has NMN --> need to send S node voxel
-                    SORT_COMM(NIN)%address_s_coarse_cell(I) = TOTAL_RCV_SIZE
-                    SORT_COMM(NIN)%nb_s_coarse_cell(I) = 0
-                    !IF(ISENDTO(NIN,ID_PROC)>0.and.IRECVFROM(NIN,LOC_PROC)>0) THEN   !   nsn of remote proc >0 + m local proc : Remote proc S --> local proc M
-                        TOTAL_RCV_SIZE = TOTAL_RCV_SIZE + NB_BOX_COARSE_GRID**3 + 1
-                        SORT_COMM(NIN)%nb_s_coarse_cell(I) = NB_BOX_COARSE_GRID**3
-                    !ENDIF
-                    ! Remote proc has NSN --> need to send M node voxel
-                    SORT_COMM(NIN)%nb_m_coarse_cell(I) = 0
-                    SORT_COMM(NIN)%address_m_coarse_cell(I) = TOTAL_RCV_SIZE
-                    !IF(IRECVFROM(NIN,ID_PROC)>0.and.ISENDTO(NIN,LOC_PROC)>0) THEN   !   nmn of remote proc >0 + s local proc : Remote proc M --> local proc S
-                      TOTAL_RCV_SIZE = TOTAL_RCV_SIZE + NB_BOX_COARSE_GRID**3 + 1
-                      SORT_COMM(NIN)%nb_m_coarse_cell(I) = NB_BOX_COARSE_GRID**3
-                    !ENDIF
-                    if(ID_PROC==60) then
-                      print*,ncycle," To proc 59 :",NIN,ispmd,SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL(I)
-                    endif
-                ENDDO
-
-                  if(ispmd==59) then
-                    do i=1,SORT_COMM(NIN)%PROC_NUMBER
-                      ID_PROC = SORT_COMM(NIN)%PROC_LIST(I)
-                      print*,ncycle," Proc 59 Voxel S",NIN,i,SORT_COMM(NIN)%nb_s_coarse_cell(I),
-     .                 SORT_COMM(NIN)%address_s_coarse_cell(I)
-                    enddo
-                    do i=1,SORT_COMM(NIN)%PROC_NUMBER
-                      ID_PROC = SORT_COMM(NIN)%PROC_LIST(I)
-                      print*,ncycle," Proc 59 Voxel M",NIN,i,SORT_COMM(NIN)%nb_m_coarse_cell(I),
-     .                 SORT_COMM(NIN)%address_m_coarse_cell(I)
-                    enddo
-                  endif
-
-
-
-                IF(.NOT.ALLOCATED(SORT_COMM(NIN)%GLOBAL_COARSE_CELL ) )THEN                
-                    ALLOCATE(SORT_COMM(NIN)%GLOBAL_COARSE_CELL(TOTAL_RCV_SIZE))
-                ENDIF
-                SORT_COMM(NIN)%GLOBAL_COARSE_CELL(:) = -1234567
-                SORT_COMM(NIN)%SIZE_GLOBAL_COARSE_CELL = TOTAL_RCV_SIZE
-                TOTAL_SEND_SIZE = 0
-!                IF(ISENDTO(NIN,LOC_PROC)>0) TOTAL_SEND_SIZE = NB_BOX_COARSE_GRID**3 + 1
-!                IF(IRECVFROM(NIN,LOC_PROC)>0) TOTAL_SEND_SIZE = TOTAL_SEND_SIZE + NB_BOX_COARSE_GRID**3 + 1
-                TOTAL_SEND_SIZE = NB_BOX_COARSE_GRID**3 + 1
-                TOTAL_SEND_SIZE = TOTAL_SEND_SIZE + NB_BOX_COARSE_GRID**3 + 1
-                
-                allocate(s_buffer(TOTAL_SEND_SIZE))
-                s_buffer(:) = 0
-                my_address = 0
-                ! Initialization of s_buffer with S voxel
-                IF(ISENDTO(NIN,LOC_PROC)>0) then
+              TOTAL_SEND_SIZE = 2*(NB_BOX_COARSE_GRID**3 + 1)
+              allocate(s_buffer(TOTAL_SEND_SIZE))
+              s_buffer(:) = 0
+              my_address = 0
+              ! Initialization of s_buffer with S voxel
+              IF(ISENDTO(NIN,LOC_PROC)>0) then
                   s_buffer(1:NB_BOX_COARSE_GRID**3 + 1) = SORT_COMM(NIN)%COARSE_GRID(1:NB_BOX_COARSE_GRID**3 + 1)
                   my_address = my_address + NB_BOX_COARSE_GRID**3 + 1
 
@@ -229,12 +140,11 @@ C-----------------------------------------------
                     endif
                   enddo
                   print*," Size S :",ispmd,nin,s_buffer(NB_BOX_COARSE_GRID**3 + 1)
-                endif
-                next = 0
+              endif
+              next = 0               
                 
-                
-                ! Initialization of s_buffer with M voxel
-                IF(IRECVFROM(NIN,LOC_PROC)>0) then
+              ! Initialization of s_buffer with M voxel
+              IF(IRECVFROM(NIN,LOC_PROC)>0) then
                   do iz=1,NB_BOX_COARSE_GRID                    
                     do iy=1,NB_BOX_COARSE_GRID
                       do ix=1,NB_BOX_COARSE_GRID
@@ -253,39 +163,60 @@ C-----------------------------------------------
                       print*," Pb EnVoI s_BuFfEr M ",ispmd,my_address+iz,s_buffer(my_address+iz)
                     endif
                   enddo
-                endif
-                
-                NB_REQUEST_COARSE_CELL = NB_REQUEST_COARSE_CELL + 1
-                LIST_INTER_COARSE_CELL(NB_REQUEST_COARSE_CELL) = NIN
-                call MPI_ALLTOALL(s_buffer, TOTAL_SEND_SIZE, MPI_INTEGER, SORT_COMM(NIN)%GLOBAL_COARSE_CELL,TOTAL_SEND_SIZE,
-     .           MPI_INTEGER, SORT_COMM(NIN)%COMM, iy)
-!                CALL SPMD_IALLTOALLV_INT(s_buffer,
-!     .            SORT_COMM(NIN)%GLOBAL_COARSE_CELL,SORT_COMM(NIN)%SEND_SIZE_COARSE_CELL,TOTAL_SEND_SIZE,
-!     .            SORT_COMM(NIN)%SEND_DISPLS_COARSE_CELL,
-!     .            TOTAL_RCV_SIZE,SORT_COMM(NIN)%RCV_SIZE_COARSE_CELL,
-!     .            SORT_COMM(NIN)%RCV_DISPLS_COARSE_CELL,ARRAY_REQUEST_COARSE_CELL(NB_REQUEST_COARSE_CELL),
-!     .            SORT_COMM(NIN)%COMM,SORT_COMM(NIN)%PROC_NUMBER)
-                deallocate(s_buffer )
-            ENDIF               
+              endif
+!isendto = nsn
+!IRECVFROM = nmn
+              my_size = 2*(NB_BOX_COARSE_GRID**3 + 1)
+              if(.not.allocated(sort_comm(nin)%data_proc)) then
+                allocate(sort_comm(nin)%data_proc(nspmd))
+              endif
+              DO I=1,SORT_COMM(NIN)%PROC_NUMBER
+                  ID_PROC = SORT_COMM(NIN)%PROC_LIST(I)
+                  if(.not.allocated(sort_comm(nin)%data_proc(id_proc)%coarse_cell)) then
+                    allocate( sort_comm(nin)%data_proc(id_proc)%coarse_cell(my_size) )
+                  endif
+                  sort_comm(nin)%nb_coarse_cell_r_request = sort_comm(nin)%nb_coarse_cell_r_request + 1
+                  sort_comm(nin)%coarse_cell_r_index(sort_comm(nin)%nb_coarse_cell_r_request) = i
+                  call mpi_irecv(sort_comm(nin)%data_proc(id_proc)%coarse_cell,my_size,MPI_INTEGER,it_spmd(id_proc), 
+     .          tag,SPMD_COMM_WORLD,sort_comm(nin)%coarse_cell_r_request(sort_comm(nin)%nb_coarse_cell_r_request),ierror)
+              ENDDO
+
+              DO I=1,SORT_COMM(NIN)%PROC_NUMBER
+                  ID_PROC = SORT_COMM(NIN)%PROC_LIST(I)
+                  sort_comm(nin)%nb_coarse_cell_s_request = sort_comm(nin)%nb_coarse_cell_s_request + 1
+                  sort_comm(nin)%coarse_cell_s_index(sort_comm(nin)%nb_coarse_cell_s_request) = i
+                  call mpi_isend(s_buffer,my_size,MPI_INTEGER,it_spmd(id_proc), 
+     .          tag,SPMD_COMM_WORLD,sort_comm(nin)%coarse_cell_s_request(sort_comm(nin)%nb_coarse_cell_s_request),ierror)
+              ENDDO
+              deallocate(s_buffer)
+            ENDIF                
           ENDDO
         ENDIF
+        
         !   -------------------------
         !   MODE=2 : - wait the previous comm
         !            - check if current proc and remote proc need to communicate
         IF(MODE==2) THEN
-            DO KK=1,NB_REQUEST_COARSE_CELL
+          DO KK=1,NB_INTER_SORTED
+            NIN = LIST_INTER_SORTED(KK)
+            ITIED = IPARI(85,NIN)
+            DO i=1,sort_comm(nin)%nb_coarse_cell_r_request
+                call mpi_waitany( sort_comm(nin)%nb_coarse_cell_r_request,sort_comm(nin)%coarse_cell_r_request,index_r,status,ierror)
+                ID_PROC = SORT_COMM(NIN)%coarse_cell_r_index(index_r)
                 !CALL MPI_WAIT(ARRAY_REQUEST_COARSE_CELL(KK),STATUS,IERROR)  
-                NIN = LIST_INTER_COARSE_CELL(KK)
-                ITIED = IPARI(85,NIN)
                 ! M local / S remote
-                CALL CHECK_COARSE_GRID_2(1,NIN,SORT_COMM(NIN)%MAIN_COARSE_GRID,SORT_COMM,ITIED)
-                ! S local / M remote
-
-                CALL CHECK_COARSE_GRID_2(2,NIN,SORT_COMM(NIN)%SECOND_COARSE_GRID,SORT_COMM,ITIED)
-                DEALLOCATE( SORT_COMM(NIN)%GLOBAL_COARSE_CELL )
-                DEALLOCATE( SORT_COMM(NIN)%COARSE_GRID )
+                IF(IRECVFROM(NIN,LOC_PROC)>0.and.ISENDTO(NIN,ID_PROC)>0)
+     .            CALL CHECK_COARSE_GRID_2(NIN,SORT_COMM(NIN)%MAIN_COARSE_GRID,sort_comm(nin)%data_proc(id_proc)%coarse_cell,SORT_COMM,ITIED,index_r)
+                ! S local / M remote                
+                my_address = NB_BOX_COARSE_GRID**3 + 1
+                IF(ISENDTO(NIN,LOC_PROC)>0.and.IRECVFROM(NIN,ID_PROC)>0) 
+     .             CALL CHECK_COARSE_GRID_2(NIN,SORT_COMM(NIN)%SECOND_COARSE_GRID,
+     .                    sort_comm(nin)%data_proc(id_proc)%coarse_cell(my_address+1),SORT_COMM,ITIED,index_r)
+            ENDDO
+            DO i=1,sort_comm(nin)%nb_coarse_cell_s_request
+              call mpi_waitany( sort_comm(nin)%nb_coarse_cell_s_request,sort_comm(nin)%coarse_cell_s_request,index_r,status,ierror)
             ENDDO 
-            NB_REQUEST_COARSE_CELL = 0                   
+          ENDDO        
         ENDIF
 !   -------------------------
 
