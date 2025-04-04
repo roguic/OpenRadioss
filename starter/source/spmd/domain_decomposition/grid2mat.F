@@ -87,6 +87,12 @@ C-----------------------------------------------
       USE INTER_CAND_MOD
       USE MATPARAM_DEF_MOD
       USE FORMAT_MOD , ONLY : FMW_A_I
+      use domain_decomposition_mod , only : domdec_,newdomdec
+      use box_creation_mod ,  only : box_creation
+      use get_elm_2_cell_connectivity_mod , only : get_elm_2_cell_connectivity
+      use get_cell_connectivity_mod , only : get_cell_connectivity
+      use get_cell_weights_mod , only : get_cell_weights
+      use get_proc_2_elm_connect_mod , only : get_proc_2_elm_connect
 C-----------------------------------------------
 C   I m p l i c i t   T y p e s
 C-----------------------------------------------
@@ -229,6 +235,7 @@ C ---- statistics for edges added for contact interface
         INTEGER :: NUMBER_OF_ELEMENT_RBODY,NUMEL
         INTEGER, DIMENSION(:), ALLOCATABLE :: LIST_ELEMENT_RBODY
         LOGICAL :: BOOL_RBODY
+        type(domdec_) :: domdec_struct
 C-----------------------------------------------
 C   E x t e r n a l   F u n c t i o n s
 C-----------------------------------------------
@@ -948,6 +955,16 @@ C          ENDIF
           ICR2R=NCOND
         ENDIF  
       END IF     
+
+
+
+
+
+
+
+
+
+
 C
       ALLOCATE(RWD(NELEM*NCOND),STAT=IERR1)
 C poids Metis suivant 
@@ -2129,29 +2146,76 @@ C
 
 C
         UBVEC(1:15) = 0
-        UBVEC(ICELEM) = 1.02
+        UBVEC(ICELEM) = 1.04
+        print*,"Contrainte ICINTS",ICINTS
+        print*,"Contrainte ICINTM",ICINTM
+        print*,"Contrainte ICINT2",ICINT2  
+        print*,"Contrainte ICDDL",ICDDL
+        print*,"Contrainte ICSOL",ICSOL
+        print*,"Contrainte ICFSI",ICFSI
+        print*,"Contrainte ICDEL",ICDEL
+        print*,"Contrainte ICCAND",ICCAND
+        print*,"Contrainte ICKIN",ICKIN
+        print*,"Contrainte ICR2R",ICR2R
+        print*,"Contrainte ICNOD_SMS",ICNOD_SMS
+
+        !OPTIONS(7) = 30
+        !OPTIONS(11) = 1
+        OPTIONS(18)=1
         IF(ICINTS/=0) UBVEC(ICINTS) = 1.05
-        IF(ICINTM/=0) UBVEC(ICINTM) = 1.05
+        IF(ICINTM/=0) UBVEC(ICINTM) = 1.07
         IF(ICINT2/=0) UBVEC(ICINT2) = 1.05
         IF(ICDDL/=0)  UBVEC(ICDDL)  = 1.02
         IF(ICSOL/=0)  UBVEC(ICSOL)  = 1.05
         IF(ICFSI/=0)  UBVEC(ICFSI)  = 1.02
         IF(ICDEL/=0)  UBVEC(ICDEL)  = 1.10
         IF(ICCAND/=0) UBVEC(ICCAND) = 1.10
-        IF(ICKIN/=0)  UBVEC(ICKIN)  = 1.10
+        IF(ICKIN/=0)  UBVEC(ICKIN)  = 1.15
         IF(ICR2R/=0)  UBVEC(ICR2R) = 1.30  ! weird !!!
         IF(ICNOD_SMS/=0) UBVEC(ICNOD_SMS) = 1.05
+        if(newdomdec/=0) then
+          print*," ----------------------------- "
+          print*,"    New Domain Decomposition   "
+          print*," ----------------------------- "
+          call box_creation(numnod,ncond,nelem, 
+     .         numels,numelq,numelc,numelt,numelp,numelr,numeltg,  
+     .         nixs,nixq,nixc,nixt,nixp,nixr,nixtg,                
+     .         ixs,ixq,ixc,ixt,ixp,ixr,ixtg,                       
+     .         isolnod,x,domdec_struct)
+          call get_elm_2_cell_connectivity( numnod,nelem,                                       
+     .                                    numels,numelq,numelc,numelt,numelp,numelr,numeltg,  
+     .                                    nixs,nixq,nixc,nixt,nixp,nixr,nixtg,                
+     .                                    ixs,ixq,ixc,ixt,ixp,ixr,ixtg,                       
+     .                                    isolnod,x,domdec_struct )
+          !print*,"Grid 1 Cell pos 49354 : ",domdec_struct%elm_2_cell_index(1:3,49354)
+          call get_cell_weights( 0,nelem,ncond,iwd,domdec_struct )
+          call get_cell_connectivity( domdec_struct )
+          call get_cell_weights( 1,nelem,ncond,iwd,domdec_struct )
+          !print*,"Grid 2 Cell pos 49354 : ",domdec_struct%elm_2_cell_index(1:3,49354)
+
+        endif
 c        i=0
 c        call METIS_EstimateMemory(NELEM,XADJ,ADJNCY,0,2,I)
 c        print *,'estimate memory=',i,nelem,XADJ(NELEM+1)
  1999    CONTINUE
          IF(DECTYP==3.OR.DECTYP==5)THEN
 C KWAY METIS
-      
-          IERR1 = Wrap_METIS_PartGraphKway(
-     1      NELEM,NCOND,XADJ,ADJNCY,
-     2      IWD,NNODE,
-     3      UBVEC,OPTIONS,NEC,CEP)
+          if(newdomdec==0) then
+            IERR1 = Wrap_METIS_PartGraphKway(
+     1        NELEM,NCOND,XADJ,ADJNCY,
+     2        IWD,NNODE,
+     3        UBVEC,OPTIONS,NEC,CEP)
+          else
+            print*," DOMDEC 1",NCOND,nec,nnode,domdec_struct%total_cell_nb,domdec_struct%non_empty_cell_nb
+            !IERR1 = METIS_SetDefaultOptions(options)
+            OPTIONS(12)=1 
+            IERR1 = Wrap_METIS_PartGraphKway(
+     1        domdec_struct%non_empty_cell_nb,NCOND,domdec_struct%adj_cell_nb,domdec_struct%adj_cell_connect,
+     2        domdec_struct%weight,NNODE,
+     3        UBVEC,OPTIONS,NEC,domdec_struct%cell_proc_connect)
+            call get_proc_2_elm_connect(nelem,cep,domdec_struct)
+            print*," DOMDEC 2",nec
+          endif
           IDB_METIS = 0
 
           IF(IDB_METIS == 1) THEN
@@ -2171,10 +2235,29 @@ C weight only on vertices
           END IF     
          ELSEIF(DECTYP==4.OR.DECTYP==6)THEN
 C RSB METIS
-          IERR1 = Wrap_METIS_PartGraphRecursive(
-     1      NELEM,NCOND,XADJ,ADJNCY,
-     2      IWD,NNODE,
-     3      UBVEC,OPTIONS,NEC,CEP)
+          if(newdomdec==0) then
+            IERR1 = Wrap_METIS_PartGraphRecursive(
+     1        NELEM,NCOND,XADJ,ADJNCY,
+     2        IWD,NNODE,
+     3        UBVEC,OPTIONS,NEC,CEP)
+          else
+            call flush(6)
+            print*," DOMDEC 3",NCOND,nec,nnode
+            call flush(6)
+            !IERR1 = METIS_SetDefaultOptions(options)
+            OPTIONS(12)=1 
+            do i=1,40
+              print*,"OpTiOnS",i,options(i)
+            enddo
+            IERR1 = Wrap_METIS_PartGraphRecursive(
+     1        domdec_struct%non_empty_cell_nb,NCOND,domdec_struct%adj_cell_nb,domdec_struct%adj_cell_connect,
+     2        domdec_struct%weight,NNODE,
+     3        UBVEC,OPTIONS,NEC,domdec_struct%cell_proc_connect)
+            call flush(6)
+            print*," DOMDEC 4",nec
+            call flush(6)
+            call get_proc_2_elm_connect(nelem,cep,domdec_struct)
+          endif
         END IF
             CALL STAT_DOMDEC(
      1           WIS      ,WI2     ,WFSI      ,WDEL      ,WDDL     ,
@@ -2800,6 +2883,8 @@ C old metis option kept for compatibility
 C new Metis5 Definition
       IERR1 = METIS_SetDefaultOptions(options)
 C     OPTIONS(METIS_OPTION_NUMBERING) = 1 ! Fortran numbering -- position 17 en 5.0.2 et 18 en 5.1
+      OPTIONS(7) = 30
+      OPTIONS(11) = 0
       OPTIONS(18)=1
 C
 C Proc attribution on NUMSPA cells

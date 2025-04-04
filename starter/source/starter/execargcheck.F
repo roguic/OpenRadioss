@@ -45,6 +45,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
       USE GRP_SIZE_MOD
       USE OUTPUT_MOD
       USE PYTHON_FUNCT_MOD 
+      use domain_decomposition_mod , only : newdomdec
 C-----------------------------------------------
 C   I m p l i c i t   T y p e s
 C-----------------------------------------------
@@ -84,7 +85,7 @@ C-----------------------------------------------
        INTEGER :: RANDM_SEED,RANDM_ALEA
        REAL(kind=8) :: RANDM_SEED_NBR,RANDM_ALEA_NBR
        INTEGER :: GOT_GRP_SIZE
-       PARAMETER (LENLIST=32)
+       PARAMETER (LENLIST=33)
        CHARACTER (LEN=12) ::  ARGLIST(LENLIST)
        EXTERNAL IARGC
        DATA ARGLIST/
@@ -101,7 +102,7 @@ C-----------------------------------------------
      .    '-INSPIRE_ALM' , '-FLUSH_RST', '-CHECK',
      .    '-HSTP_READ' , '-HSTP_WRITE', '-RXALEA', '-RSEED',
      .    '-PREVIEW',
-     .    '-GRP_SIZE' , '-PYTHON' , '-THNMS1'/
+     .    '-GRP_SIZE' , '-PYTHON' , '-THNMS1', '-NEWDOMDEC'/
 
 C-----------------------------------------------
        IDUM=-1
@@ -143,6 +144,7 @@ c
 !      domdec optimization
        DOMDEC_TUNING = 0
        DD_OPTIMIZATION = 0
+       newdomdec = 0
        !    /RFILE/OFF or -check command line 
        !    --> avoid to write restart files at the end of the starter
        !    default = write restart files
@@ -305,6 +307,9 @@ C------------------------------------------------
             CASE ( '-THNMS1')
                 OUTPUT%TH%DUMP_THNMS1_FILE = 1
 C------------------------------------------------
+            CASE( '-NEWDOMDEC')
+              newdomdec = 1
+C------------------------------------------------                
 C Lignes de commande qui ne sont pas definies
             CASE DEFAULT
             ERR = 0
