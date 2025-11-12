@@ -524,7 +524,7 @@ C     PARAMETER ( REM30 = RUN/REP30   )
 #define       REP30   1.0E30          
 #define       REM30   1.0E-30   
 
-
+          integer :: toto1,toto2,toto3,toto4
 
 
 C-----------------------------------------------
@@ -539,6 +539,10 @@ C     REP30 = RDIX**30
 C     REM30 = RUN/REP30
 C
       IF(FLAG == 1) THEN
+        toto1 = 0
+        toto2 = 0
+        toto3 = 0
+        toto4 = 0
         CALL STARTIME(TIMERS,154)
       NRTMFT= 1+(JTASK-1)*NRTM0/ NTHREAD
       NRTMLT= JTASK*NRTM0/NTHREAD
@@ -573,9 +577,11 @@ C
             TAGE(IRM)=1
             CYCLE
           END IF
+          toto1 = toto1 + 1
 
 C
           IF(STIFM(IRM) > ZERO) THEN
+          toto2 = toto2 + 1            
 C
             X1=X(1,IX1)
             Y1=X(2,IX1)
@@ -718,6 +724,7 @@ C
           ISH=MSEGTYP(IRM)
           IF(ISH > 0) THEN
             IF(ISH > NRTM)ISH=ISH-NRTM
+                      toto3 = toto3 + 1
 C
             IF(IS_QUAD(I))THEN
 C
@@ -762,6 +769,7 @@ C
 C
           IRM=I+N-1
           IF(TAGE(IRM)==1) CYCLE
+                    toto4 = toto4 + 1
 C
           I1=ADMSR(1,IRM)
           I2=ADMSR(2,IRM)
@@ -810,6 +818,7 @@ c
 
       END DO
 C
+      if(ncycle==0) write(*,*) ispmd," I25 norm :",nrtm,toto1,toto2,toto3,toto4
       CALL MY_BARRIER
 C
       NRTMFT= 1+(JTASK-1)*NRTM/ NTHREAD
