@@ -67,7 +67,7 @@ C-----------------------------------------------
       INTEGER IPARI(NPARI,NINTER), INTLIST25(*), ITAB(*),
      .        IAD_FRNOR(NINTER25,*), FR_NOR(*), IAD_FREDG(NINTER25,*), FR_EDG(*), 
      .        IAD_ELEM(2,*), FR_ELEM(*),ADDCSRECT(*), PROCNOR(*)
-      type(timer_), intent(in) :: timers
+      type(timer_), intent(inout) :: timers
 C     REAL
       my_real  :: X(3,*)
       TYPE(INTBUF_STRUCT_),DIMENSION(NINTER) :: INTBUF_TAB
@@ -95,7 +95,7 @@ C
             N = INTLIST25(I)
             NRTM   = IPARI(4,N)
             if(ncycle==0) then
-              write(*,*) "Interface ",N," Number of Seg: ",NRTM,"Number of S nodes:",IPARI(5,N)
+              write(*,*) ispmd,"Interface ",N," Number of Seg: ",NRTM,"Number of S nodes:",IPARI(5,N)
             end if
             ALLOCATE(INTBUF_TAB(N)%TAGNOD(NUMNOD), INTBUF_TAB(N)%WNOD_NORMAL(3,4,NRTM))
             ALLOCATE(INTBUF_TAB(N)%TAGE(NRTM))
