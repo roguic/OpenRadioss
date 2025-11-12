@@ -442,11 +442,12 @@ C
      .                    IAD_FRNOR,FR_NOR,VTX_BISECTOR,FLAG,
      .                    NB_FREE_BOUND,FREE_BOUND,TAGE,FREE_IRECT_ID,NRTM_FREE,
      .                    FSKYT,IADNOR,ISHIFT,ADDCSRECT,PROCNOR,SOL_EDGE,
-     .                    FSKYN25 )
+     .                    FSKYN25 ,timers)
 C-----------------------------------------------
 C   M o d u l e s
 C-----------------------------------------------
       USE MPI_COMMOD
+      USE timer_mod
 #ifdef WITH_ASSERT
       USE DEBUG_MOD
 #endif
@@ -468,6 +469,7 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
+      type(timer_) :: timers
       INTEGER NI25, NRTM, NRTM0, NMN, JTASK, IEDGE, NEDGE, FLAG, NADMSR,ISHIFT,SOL_EDGE,
      .        IRECT(4,NRTM), MSR(*),
      .        ACTNOR(*), MSEGTYP(*), TAGNOD(*), 
@@ -537,7 +539,7 @@ C     REP30 = RDIX**30
 C     REM30 = RUN/REP30
 C
       IF(FLAG == 1) THEN
-
+        CALL STARTIME(TIMERS,154)
       NRTMFT= 1+(JTASK-1)*NRTM0/ NTHREAD
       NRTMLT= JTASK*NRTM0/NTHREAD
 
@@ -958,6 +960,8 @@ C
       ENDDO 
 
       CALL MY_BARRIER
+      CALL STOPTIME(TIMERS,154)
+      CALL STARTIME(TIMERS,155)
 
 C
       IF(NSPMD > 1)THEN
@@ -971,12 +975,13 @@ C
         END IF
       END IF
       CALL MY_BARRIER
+      CALL STOPTIME(TIMERS,155)      
 C
       ELSE IF(FLAG == 2) THEN
 C
 C
 C
-
+      CALL STARTIME(TIMERS,156)
       NRTMFT= 1+(JTASK-1)*NRTM/ NTHREAD
       NRTMLT= JTASK*NRTM/NTHREAD
       DO N=NRTMFT,NRTMLT,MVSIZ
@@ -1027,6 +1032,8 @@ C               ENDIF
         END DO !I
       END DO ! N
 C
+      CALL STOPTIME(TIMERS,156)
+      CALL STARTIME(TIMERS,157)
       CALL MY_BARRIER
       IF(NSPMD > 1)THEN
         IF(JTASK==1)THEN
@@ -1041,6 +1048,8 @@ C
           END WHERE
         END IF
       END IF
+      CALL STOPTIME(TIMERS,157)
+      CALL STARTIME(TIMERS,158)      
 C
       CALL MY_BARRIER
 C
@@ -1084,6 +1093,7 @@ C broken
           ENDIF
         END DO
       END DO
+      CALL STOPTIME(TIMERS,158)   
       ENDIF ! FLAG
 
 C debug print

@@ -38,7 +38,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
      1                   INTLIST25,IPARI   ,INTBUF_TAB ,JTASK    ,X       ,
      2                   ITAB    ,NSENSOR  ,SENSOR_TAB,IAD_FRNOR    ,FR_NOR   ,
      3                   IAD_FREDG,FR_EDG,IAD_ELEM,FR_ELEM,FSKYN25,
-     4                   ADDCSRECT,PROCNOR)
+     4                   ADDCSRECT,PROCNOR,timers)
 C=======================================================================
 C-----------------------------------------------
 C   M o d u l e s
@@ -46,6 +46,7 @@ C-----------------------------------------------
       USE MPI_COMMOD
       USE INTBUFDEF_MOD
       USE SENSOR_MOD
+      use timer_mod
 C-----------------------------------------------
 C   I m p l i c i t   T y p e s
 C-----------------------------------------------
@@ -66,6 +67,7 @@ C-----------------------------------------------
       INTEGER IPARI(NPARI,NINTER), INTLIST25(*), ITAB(*),
      .        IAD_FRNOR(NINTER25,*), FR_NOR(*), IAD_FREDG(NINTER25,*), FR_EDG(*), 
      .        IAD_ELEM(2,*), FR_ELEM(*),ADDCSRECT(*), PROCNOR(*)
+      type(timer_), intent(in) :: timers
 C     REAL
       my_real  :: X(3,*)
       TYPE(INTBUF_STRUCT_),DIMENSION(NINTER) :: INTBUF_TAB
@@ -92,6 +94,9 @@ C
         DO I=1,NINTER25
             N = INTLIST25(I)
             NRTM   = IPARI(4,N)
+            if(ncycle==0) then
+              write(*,*) "Interface ",N," Number of Seg: ",NRTM,"Number of S nodes:",IPARI(5,N)
+            end if
             ALLOCATE(INTBUF_TAB(N)%TAGNOD(NUMNOD), INTBUF_TAB(N)%WNOD_NORMAL(3,4,NRTM))
             ALLOCATE(INTBUF_TAB(N)%TAGE(NRTM))
         ENDDO
@@ -173,7 +178,7 @@ C
         NEDGE  = IPARI(68,N) ! Updated in i25normp
         SOL_EDGE =0
         IF(IEDGE /= 0) SOL_EDGE =IEDGE/10 ! solids
-
+        CALL STARTIME(TIMERS,151)
         CALL I25TAGN(NI25    ,N       ,NRTM     ,NSN         ,NSNR      ,
      2               JTASK   ,IAD_FRNOR ,FR_NOR  ,INTBUF_TAB(N)%IRTLM,INTBUF_TAB(N)%MSEGTYP24  ,
      3               INTBUF_TAB(N)%I_STOK(2), INTBUF_TAB(N)%I_STOK(3), INTBUF_TAB(N)%CAND_OPT_E, 
@@ -187,7 +192,8 @@ C
      8               INTBUF_TAB(N)%NUMBER_EDGE_TYPE1,INTBUF_TAB(N)%NUMBER_EDGE_TYPE1_0,
      .               INTBUF_TAB(N)%EDGE_TYPE1,INTBUF_TAB(N)%EDGE_TYPE1_0 )
 
-
+        CALL STOPTIME(TIMERS,151)
+        CALL STARTIME(TIMERS,152)
 C
         NADMSRF6= 1+(JTASK-1)*6*NADMSR/ NTHREAD
         NADMSRL6= JTASK*6*NADMSR/NTHREAD
@@ -218,7 +224,7 @@ C
         ISHIFT = ISHIFT + IPARI(67,N)
 
         IF(JTASK==1)  DEALLOCATE(INTBUF_TAB(N)%TAGSEG)
-
+        CALL STOPTIME(TIMERS,152)
 C
       END DO
 
@@ -257,7 +263,7 @@ C       NEDGE  = IPARI(68,N) ! Updated in i25normp
         IF(IEDGE /= 0) SOL_EDGE =IEDGE/10 ! solids
 
         CALL MY_BARRIER()
-
+        CALL STARTIME(TIMERS,153)
         CALL I25NORMP(
      1    NI25,NRTM,NRTM0,INTBUF_TAB(N)%IRECTM,X           ,
      2    INTBUF_TAB(N)%EDGE_BISECTOR,IPARI(6,N),INTBUF_TAB(N)%MSR   , 
@@ -271,7 +277,7 @@ C       NEDGE  = IPARI(68,N) ! Updated in i25normp
      8    FSKYN25(1,NCSHIFT),INTBUF_TAB(N)%IADNOR,ISHIFT,ADDCSRECT,PROCNOR,SOL_EDGE,
      9    FSKYN25 )
 
-
+        CALL STOPTIME(TIMERS,153)
         CALL MY_BARRIER()
 
         NCSHIFT=NCSHIFT+INTBUF_TAB(N)%ADSKYN(NADMSR+1)-1
