@@ -65,6 +65,20 @@ C-----------------------------------------------
       USE AREZO3_MOD , ONLY : AREZO3
       USE AREZO2_MOD , ONLY : AREZO2
       use timer_mod
+
+
+
+
+
+
+
+
+
+
+
+
+
+      use debug_mod
 C-----------------------------------------------
 C   I m p l i c i t   T y p e s
 C-----------------------------------------------
@@ -100,6 +114,9 @@ C-----------------------------------------------
       integer :: offset ! offset for flux array (2d case)
       my_real, DIMENSION(:), POINTER :: VAR,SIG,VOL, TAG22,TEMP
       INTEGER :: FLAG_MAT_EOS
+
+
+      logical :: my_check
 C-----------------------------------------------
 C     S o u r c e   L i n e s
 C-----------------------------------------------
@@ -108,6 +125,7 @@ C-----------------------------------------------
       IDX=NV
       NMN=MAX(1,NMULT)
       DO NM=1,NMN
+        my_check = .false.
 C---------------------
        CALL MY_BARRIER
 C---------------------
@@ -161,12 +179,14 @@ C     ALE ON / OFF
               J      = I+NFT
               PHI(J) = ELBUF_STR(NG)%BUFLY(1)%MAT(1,1,1)%VAR(ADD+I)
             END DO
+            my_check = .true.
           ELSE
             DO I=LFT,LLT !other material laws or mtn=51
               J = I+NFT
               K = (IDX-1)*NEL + I !idx : 1:6
               PHI(J) = ELBUF_STR(NG)%BUFLY(NM)%LBUF(1,1,1)%SIG(K)
             ENDDO
+             my_check = .true.
           ENDIF
         !----------------------------!
         !        N V A R = 10        !
@@ -200,6 +220,7 @@ C     ALE ON / OFF
             J = I+NFT
             PHI(J) = VAR(I)
           ENDDO
+           my_check = .true.
         !----------------------------!
         !        N V A R = 11        !
         !          (MAT/EOS %VAR)    !
@@ -227,6 +248,7 @@ C     ALE ON / OFF
               PHI(J) = VAR(I)
             ENDDO
           ENDIF
+           my_check = .true.
         !----------------------------!
         !        N V A R = 12        !
         !             (TEMP)         !
@@ -249,6 +271,7 @@ C     ALE ON / OFF
             J = I+NFT
             PHI(J) = VAR(I)
           ENDDO
+           my_check = .true.
         !----------------------------!
         !        DEFAULT             !
         !----------------------------!
@@ -262,6 +285,7 @@ C     ALE ON / OFF
 C---------------------
        CALL MY_BARRIER
 C---------------------
+        if(ncycle_debug==1) print*,ispmd_debug,"VeRiF",itrimat,NVAR,NV,my_check
        !------------------------------------!
        ! SPMD EXCHANGES                     !
        !------------------------------------!

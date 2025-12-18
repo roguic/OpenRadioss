@@ -1720,7 +1720,7 @@ C===============================================================================
      .                      iale,ieuler,trimat,glob_therm%itherm,numnod,    
      .                      nspmd,nsvois,nqvois,nparg,ngroup,slesdvois,slercvois,        
      .                      nesdvois,nercvois,lesdvois,lercvois,nodes%itab, 
-     .                      nodes%itabm1,ixs,ixq,iparg,ale,ale_connectivity)
+     .                      nodes%itabm1,ixs,ixq,iparg,ale,ale_connectivity,elbuf_tab)
 
               IF(NADMESH/=0.AND.IDEL7NG>=1) IDEL7NOK = 0
 C     THERMAL TIME STEP : we don t check incompatible kinematic conditions anymore

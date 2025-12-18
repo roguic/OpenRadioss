@@ -44,7 +44,7 @@
                             iale,ieuler,trimat,itherm,numnod, &
                             nspmd,nsvois,nqvois,nparg,ngroup,s_lesdvois,s_lercvois, &
                             nesdvois,nercvois,lesdvois,lercvois,itab, &
-                            itabm1,ixs,ixq,iparg,ale,ale_connect)
+                            itabm1,ixs,ixq,iparg,ale,ale_connect,elbuf_tab)
 ! ----------------------------------------------------------------------------------------------------------------------
 !                                                   Modules
 ! ----------------------------------------------------------------------------------------------------------------------
@@ -53,6 +53,8 @@
           use element_mod , only : nixs, nixq
           use init_ale_spmd_mod , only : init_ale_spmd
           use init_ale_boundary_condition_mod , only : init_ale_boundary_condition
+          use init_ale_arezon_spmd_mod , only : init_ale_arezon_spmd
+          use elbufdef_mod
 ! ----------------------------------------------------------------------------------------------------------------------
 !                                                   Implicit none
 ! ----------------------------------------------------------------------------------------------------------------------
@@ -90,10 +92,13 @@
           integer, dimension(nixq,numelq), intent(in) :: ixq !< Quad element connectivity
           integer, dimension(nparg,ngroup), intent(in) :: iparg !< group element data    
           type(ale_), intent(inout) :: ale !< ALE data structure                  
-          type(t_ale_connectivity), intent(inout) :: ale_connect !< ALE data structure for connectivity  
+          type(t_ale_connectivity), intent(inout) :: ale_connect !< ALE data structure for connectivity
+          type(elbuf_struct_), dimension(ngroup), intent(in) :: elbuf_tab !< element buffer structure
 ! ----------------------------------------------------------------------------------------------------------------------
 !                                                   Local variables
 ! ----------------------------------------------------------------------------------------------------------------------
+          integer, dimension(:,:),allocatable :: idx_list !< list of index for each rezoning variable1
+          integer, dimension(:,:,:),allocatable :: need_to_compute !< output array to know if we need to compute the rezoning variable          
 ! ----------------------------------------------------------------------------------------------------------------------
 !                                                   External functions
 ! ----------------------------------------------------------------------------------------------------------------------
@@ -101,6 +106,8 @@
 ! ----------------------------------------------------------------------------------------------------------------------
 !                                                   Body
 ! ----------------------------------------------------------------------------------------------------------------------
+          allocate(need_to_compute(4,0:trimat,1:max(1,nmult)))
+          allocate(idx_list(4,0:trimat))
           if(n2d==0) then
             ale%global%nv46 = 6
           else
@@ -125,7 +132,12 @@
             end if
 
             call init_ale_boundary_condition(ale%global%nv46,nparg,ngroup,iparg,ale_connect)
+            call init_ale_arezon_spmd(n2d,numels,numelq,trimat,nmult,ngroup,nparg, &
+                                      iparg,need_to_compute,idx_list,elbuf_tab,ale_connect)
           end if
+
+          deallocate(need_to_compute)
+          deallocate(idx_list)
 
           return
 ! ----------------------------------------------------------------------------------------------------------------------

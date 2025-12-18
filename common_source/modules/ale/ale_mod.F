@@ -242,6 +242,13 @@ C-----------------------------------------------
           INTEGER :: NUM_NUVAR_EOS
         END TYPE ALE_REZON_
 
+        type ale_group_
+          integer :: wo_neigh_nb !< number og groups without neighbors
+          integer, dimension(:), allocatable :: list_wo_neigh_nb !< list of groups without neighbors
+          integer :: w_neigh_nb !< number of groups with neighbors
+          integer, dimension(:), allocatable :: list_w_neigh_nb !< list of groups with neighbors
+        end type ale_group_
+
         ! GENERAL DATA STRUCTURE USED IN SOURCE CODE
         TYPE ALE_
           TYPE(ALE_GRID_)   :: GRID
@@ -249,6 +256,7 @@ C-----------------------------------------------
           TYPE(ALE_GLOBAL_) :: GLOBAL
           TYPE(ALE_SUB_)    :: SUB
           TYPE(ALE_REZON_)  :: REZON
+          type(ale_group_) :: ale_group !< ale element groups
         contains
           procedure, pass :: init
         END TYPE ALE_
