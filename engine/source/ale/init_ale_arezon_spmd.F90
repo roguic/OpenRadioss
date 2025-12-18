@@ -195,6 +195,7 @@
           group_tag(1:ngroup) = 0
           ale_group_nb = 0
           ale_group_neigh_nb = 0
+          nel_g
           do ng=1,ngroup
             call initbuf(iparg,ng,mtn,llt,nft,iad,ity,npt,jale,ismstr,jeul,jtur,   &
                          jthe,jlag,jmult,jhbe,jivf,nvaux,jpor,jcvt,jclose,jplasol, &
@@ -204,6 +205,7 @@
             group_tag(ng) = 1 ! ale group
             ale_group_nb = ale_group_nb + 1
             done = .false.
+            nel_g = nel_g + llt
             do i=1,llt
               elem_id = nft + i
               my_address = ale_connect%ee_connect%iad_connect(elem_id)
@@ -236,8 +238,8 @@
             end if            
           enddo
 
-          print*,ispmd_debug,"Group : ",ale_group_nb,ale%ale_group%wo_neigh_nb, &
-          ale_group_neigh_nb,ale%ale_group%w_neigh_nb,ngroup
+          print*,ispmd_debug,"Group : ",ale%ale_group%wo_neigh_nb, &
+          ale%ale_group%w_neigh_nb,ngroup,nel_g
           !
           !
           !  phi(1:numels+nsvois) --> nsvois nombre de voisin element qu'on recoit
