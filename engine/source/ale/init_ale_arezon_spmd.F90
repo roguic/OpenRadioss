@@ -75,7 +75,7 @@
 !                                                   Local variables
 ! ----------------------------------------------------------------------------------------------------------------------
           logical :: done          
-          integer :: itrimat,mat_number,my_check,flag_mat_eos
+          integer :: itrimat,mat_number,my_check,flag_mat_eos,nel_g
           integer :: nm,ijk,nvar,idx_nb,ng,idx
           integer :: mtn,llt,nft,iad,ity,npt,jale,ismstr,jeul,jtur
           integer :: jthe,jlag,jmult,jhbe,jivf,nvaux,jpor,jcvt,jclose,jplasol
