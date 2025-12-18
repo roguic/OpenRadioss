@@ -217,8 +217,8 @@
             end do ! loop over the element
           enddo ! loop over the group of element
 
-          ale%ale_group%w_neigh_nb = ale_group_nb - ale_group_neigh_nb
-          ale%ale_group%wo_neigh_nb = ale_group_neigh_nb
+          ale%ale_group%w_neigh_nb = ale_group_neigh_nb
+          ale%ale_group%wo_neigh_nb = ale_group_nb - ale_group_neigh_nb
           allocate(ale%ale_group%list_w_neigh_nb(ale_group_neigh_nb))
           allocate(ale%ale_group%list_wo_neigh_nb(ale_group_nb-ale_group_neigh_nb))
 
