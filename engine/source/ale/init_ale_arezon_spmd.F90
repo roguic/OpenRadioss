@@ -67,7 +67,7 @@
           integer, intent(in) :: ngroup !< number of group of element
           integer, intent(in) :: nparg !< first dimension of iparg array
           integer, dimension(nparg,ngroup), intent(in) :: iparg !< group element data
-          integer, dimension(4,0:trimat,1:max(1,nmult)), intent(inout) :: need_to_compute !< output array to know if we need to compute the rezoning variable
+          integer, dimension(4,trimat+1,1:max(1,nmult)), intent(inout) :: need_to_compute !< output array to know if we need to compute the rezoning variable
           integer, dimension(4,0:trimat), intent(inout) :: idx_list !< list of index for each rezoning variable1
           type(elbuf_struct_), dimension(ngroup), intent(in) :: elbuf_tab !< element buffer structure
           type(t_ale_connectivity), intent(inout) :: ale_connect !< ALE data structure for connectivity          
@@ -84,7 +84,7 @@
           integer :: ale_group_neigh_nb,ale_group_nb
           integer :: i,k,elem_id,my_address,nb_connected_elm,n_entity
           integer, dimension(4), parameter :: nvar_list = (/2,10,11,12/)
-          integer, dimension(4,0:trimat,1:max(1,nmult)) :: need_to_compute_l
+          integer, dimension(4,trimat+1,1:max(1,nmult)) :: need_to_compute_l
           integer, dimension(1:ngroup) :: group_tag
 ! ----------------------------------------------------------------------------------------------------------------------
 !                                                   External functions
@@ -93,6 +93,7 @@
 ! ----------------------------------------------------------------------------------------------------------------------
 !                                                   Body
 ! ----------------------------------------------------------------------------------------------------------------------
+          print*,"need_to_compute?",size(need_to_compute)
           ! itrimat = 0
           ! nvar = 2      / 10 / 11                               / 12
           ! idx =  1-->6  / 1  /NUM_NUVAR_MAT + NUM_NUVAR_EOS     / 1
@@ -119,8 +120,8 @@
           end do
           
           mat_number = max(1,nmult)
-          need_to_compute_l(1:4,0:trimat,1:mat_number) = 0
-          need_to_compute(1:4,0:trimat,1:mat_number) = 0          
+          need_to_compute_l(1:4,1:trimat+1,1:mat_number) = 0
+          need_to_compute(1:4,1:trimat+1,1:mat_number) = 0          
           do nm=1,mat_number
             do itrimat=0,max(1,trimat)
               do ijk=1,4
@@ -184,7 +185,7 @@
                     my_check = 1
                   end do ! loop over the group of element
                 end do ! loop over idx
-                need_to_compute_l(ijk,itrimat,nm) = my_check
+                need_to_compute_l(ijk,itrimat+1,nm) = my_check
               end do ! loop over nvar
             end do ! loop over itrimat
           end do ! loop over material number
@@ -234,7 +235,9 @@
               ale%ale_group%list_w_neigh_nb(ale_group_neigh_nb) = ng
             end if            
           enddo
-          print*,ispmd_debug,"Group : ",ale%ale_group%wo_neigh_nb,ale%ale_group%w_neigh_nb,ngroup
+
+          print*,ispmd_debug,"Group : ",ale_group_nb,ale%ale_group%wo_neigh_nb, &
+          ale_group_neigh_nb,ale%ale_group%w_neigh_nb,ngroup
           !
           !
           !  phi(1:numels+nsvois) --> nsvois nombre de voisin element qu'on recoit
