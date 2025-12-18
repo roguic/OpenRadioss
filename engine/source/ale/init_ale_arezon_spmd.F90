@@ -195,7 +195,7 @@
           group_tag(1:ngroup) = 0
           ale_group_nb = 0
           ale_group_neigh_nb = 0
-          nel_g
+          nel_g = 0
           do ng=1,ngroup
             call initbuf(iparg,ng,mtn,llt,nft,iad,ity,npt,jale,ismstr,jeul,jtur,   &
                          jthe,jlag,jmult,jhbe,jivf,nvaux,jpor,jcvt,jclose,jplasol, &
