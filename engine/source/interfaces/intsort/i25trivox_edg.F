@@ -147,6 +147,7 @@ c provisional
       integer, dimension(:), allocatable :: edge_index
       integer, dimension(:,:), allocatable, save :: cell_pos_x,cell_pos_y,cell_pos_z
 
+      integer :: my_min_x,my_min_y,my_min_z,my_max_x,my_max_y,my_max_z
       integer, dimension(:), allocatable, save :: local_min_x,local_min_y,local_min_z
       integer, dimension(:), allocatable, save :: local_max_x,local_max_y,local_max_z
 
@@ -219,12 +220,12 @@ c     Dev Future: xminb larger than Xmin ...
       ZMAXB = ZMAX
 
       if(.true.) then
-      local_min_x(itask+1) = nbx + 2
-      local_min_y(itask+1) = nby + 2
-      local_min_z(itask+1) = nbz + 2
-      local_max_x(itask+1) = 1
-      local_max_y(itask+1) = 1
-      local_max_z(itask+1) = 1
+      my_min_x = nbx + 2
+      my_min_y = nby + 2
+      my_min_z = nbz + 2
+      my_max_x = 1
+      my_max_y = 1
+      my_max_z = 1
 
 !$omp do schedule(guided)
       DO I=1,NEDGE + NEDGE_REMOTE
@@ -326,12 +327,12 @@ c     Dev Future: xminb larger than Xmin ...
         IZ2=MAX(1,2+MIN(NBZ,IZ2))        
 
         !for voxel reset
-        local_min_x(itask+1) = MIN(local_min_x(itask+1),IX1)
-        local_min_y(itask+1) = MIN(local_min_y(itask+1),IY1)
-        local_min_z(itask+1) = MIN(local_min_z(itask+1),IZ1)
-        local_max_x(itask+1) = MAX(local_max_x(itask+1),IX2)
-        local_max_y(itask+1) = MAX(local_max_y(itask+1),IY2)
-        local_max_z(itask+1) = MAX(local_max_z(itask+1),IZ2)
+        my_min_x = MIN(my_min_x,IX1)
+        my_min_y = MIN(my_min_y,IY1)
+        my_min_z = MIN(my_min_z,IZ1)
+        my_max_x = MAX(my_max_x,IX2)
+        my_max_y = MAX(my_max_y,IY2)
+        my_max_z = MAX(my_max_z,IZ2)
         cell_pos_x(i,1) = ix1
         cell_pos_x(i,2) = ix2
         cell_pos_y(i,1) = iy1
@@ -339,7 +340,13 @@ c     Dev Future: xminb larger than Xmin ...
         cell_pos_z(i,1) = iz1
         cell_pos_z(i,2) = iz2
       ENDDO
-!$omp end do
+!$omp end do no wait
+        local_min_x(itask+1) = my_min_x
+        local_min_y(itask+1) = my_min_y
+        local_min_z(itask+1) = my_min_z
+        local_max_x(itask+1) = my_max_x
+        local_max_y(itask+1) = my_max_y
+        local_max_z(itask+1) = my_max_z
       call my_barrier()
 !$omp single
       do i=1,nthread
