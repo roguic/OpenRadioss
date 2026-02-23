@@ -47,7 +47,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
      D   GAP_E_L, NEDGE_LOCAL ,IFQ   ,CANDE2E_FX ,CANDE2E_FY,
      E   CANDE2E_FZ,CANDE2S_FX ,CANDE2S_FY,CANDE2S_FZ,
      F   IFPEN_E  ,IFPEN_E2S ,KREMNODE_EDG_SIZ,REMNODE_EDG_SIZ,
-     G   KREMNODE_E2S_SIZ,REMNODE_E2S_SIZ,DGAPLOAD) 
+     G   KREMNODE_E2S_SIZ,REMNODE_E2S_SIZ,DGAPLOAD,nthread) 
 C============================================================================
 C   M o d u l e s
 C-----------------------------------------------
@@ -77,6 +77,7 @@ C-----------------------------------------------
       INTEGER , INTENT(IN) :: 
      .        FLAGREMNODE, KREMNODE_EDG(KREMNODE_EDG_SIZ), REMNODE_EDG(REMNODE_EDG_SIZ),
      .        KREMNODE_E2S(KREMNODE_E2S_SIZ), REMNODE_E2S(REMNODE_E2S_SIZ)
+      integer, intent(in) :: nthread !< number of openmp threads     
 C     REAL
       my_real
      . GAP,VMAXDT,
@@ -223,7 +224,7 @@ C
      D   GAP_E_L,NEDGE_LOCAL,IFQ,CANDE2E_FX ,CANDE2E_FY,
      E   CANDE2E_FZ,CANDE2S_FX ,CANDE2S_FY,CANDE2S_FZ,IFPEN_E,IFPEN_E2S,
      F   KREMNODE_EDG_SIZ,REMNODE_EDG_SIZ,KREMNODE_E2S_SIZ,REMNODE_E2S_SIZ, 
-     G   DGAPLOAD )
+     G   DGAPLOAD ,nthread)
 C
 C     I_MEM /= 0 ==> PAS ASSEZ DE MEMOIRE CANDIDATES
 C

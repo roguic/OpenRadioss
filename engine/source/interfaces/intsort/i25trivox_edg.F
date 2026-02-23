@@ -54,7 +54,7 @@ Copyright>        commercial version may interest you: https://www.altair.com/ra
      D      GAP_E_L,NEDGE_LOCAL,IFQ,CANDE2E_FX ,CANDE2E_FY,
      E      CANDE2E_FZ,CANDE2S_FX ,CANDE2S_FY,CANDE2S_FZ,IFPEN_E,IFPEN_E2S,
      F      KREMNODE_EDG_SIZ,REMNODE_EDG_SIZ,KREMNODE_E2S_SIZ,REMNODE_E2S_SIZ,
-     G      DGAPLOAD   )
+     G      DGAPLOAD,nthread   )
 C============================================================================
 C   M o d u l e s
 C-----------------------------------------------
@@ -111,6 +111,7 @@ C     REAL
      .   CANDE2S_FX(4,*) ,CANDE2S_FY(4,*),CANDE2S_FZ(4,*)
       REAL*4 EDG_BISECTOR(3,4,*), VTX_BISECTOR(3,2,*)
       INTEGER, INTENT(IN) :: NEDGE_LOCAL
+      integer, intent(in) :: nthread !< number of openmp threads
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
@@ -142,6 +143,13 @@ c provisional
      .   ZMAX_EDGM, ZMIN_EDGM
       my_real :: G ! gap
       INTEGER, DIMENSION(:), ALLOCATABLE ::  TAGEDG
+      integer :: nb_edge,ijk
+      integer, dimension(:), allocatable :: edge_index
+      integer, dimension(:,:), allocatable, save :: cell_pos_x,cell_pos_y,cell_pos_z
+
+      integer, dimension(:), allocatable, save :: local_min_x,local_min_y,local_min_z
+      integer, dimension(:), allocatable, save :: local_max_x,local_max_y,local_max_z
+
       INTEGER :: EDGE_TYPE
       INTEGER :: EID
       INTEGER FIRST_ADD, PREV_ADD, CHAIN_ADD, CURRENT_ADD, MAX_ADD
@@ -152,6 +160,7 @@ C-----------------------------------------------
       INTEGER, DIMENSION(:), ALLOCATABLE ::  TAGREMLINE
 C-----------------------------------------------
 C
+      allocate(edge_index(nedge+nedge_remote))
       DRAD2 =ZERO
 
       IF(FLAGREMNODE==2) THEN
@@ -180,6 +189,15 @@ C
         ALLOCATE(LCHAIN_ELEM(1:MAX_ADD))
         ALLOCATE(LCHAIN_NEXT(1:MAX_ADD))
         ALLOCATE(LCHAIN_LAST(1:MAX_ADD))
+        allocate(cell_pos_x(nedge+nedge_remote,2))
+        allocate(cell_pos_y(nedge+nedge_remote,2))
+        allocate(cell_pos_z(nedge+nedge_remote,2))
+        allocate(local_min_x(nthread))
+        allocate(local_min_y(nthread))
+        allocate(local_min_z(nthread))
+        allocate(local_max_x(nthread))
+        allocate(local_max_y(nthread))
+        allocate(local_max_z(nthread))
       END IF
 
 C     Barrier to wait init voxel and allocation
@@ -200,9 +218,214 @@ c     Dev Future: xminb larger than Xmin ...
       YMAXB = YMAX
       ZMAXB = ZMAX
 
-c     IF( NSPMD > 1) THEN
-c       CALL SPMD_OLDNUMCD(RENUM,OLDNUM,ISZNSNR,NSNROLD)
-c     ENDIF
+      if(.true.) then
+      local_min_x(itask+1) = nbx + 2
+      local_min_y(itask+1) = nby + 2
+      local_min_z(itask+1) = nbz + 2
+      local_max_x(itask+1) = 1
+      local_max_y(itask+1) = 1
+      local_max_z(itask+1) = 1
+
+!$omp do schedule(guided)
+      DO I=1,NEDGE + NEDGE_REMOTE
+        cell_pos_x(i,1) = 0
+        IF(I <= NEDGE_LOCAL) THEN
+          NE = LEDGE(1,I)
+          IF(STFE(I)==ZERO) CYCLE   ! We do not retain the Destruit facets
+          IF(LEDGE(7,I) < 0) CYCLE   ! Larete is not a second and second
+          N1 = LEDGE(5,I)
+          N2 = LEDGE(6,I)
+          EID = LEDGE(8,I)
+
+          XX1=X(1,N1)
+          XX2=X(1,N2)
+          YY1=X(2,N1)
+          YY2=X(2,N2)
+          ZZ1=X(3,N1)
+          ZZ2=X(3,N2)
+          DEBUG_E2E(EID == D_ES,EID)
+        ELSE IF(I > NEDGE) THEN
+          XX1=XREM_EDGE(E_X1,I-NEDGE)
+          XX2=XREM_EDGE(E_X2,I-NEDGE)
+          YY1=XREM_EDGE(E_Y1,I-NEDGE)
+          YY2=XREM_EDGE(E_Y2,I-NEDGE)
+          ZZ1=XREM_EDGE(E_Z1,I-NEDGE)
+          ZZ2=XREM_EDGE(E_Z2,I-NEDGE)
+          EID = IREM_EDGE(E_GLOBAL_ID,I-NEDGE)
+          DEBUG_E2E(EID == D_ES,EID)
+        ELSE
+          ! Secondary edge is boundary between domains
+          ! ISPMD is not the owner of this edge
+          ASSERT(NSPMD > 1)
+          CYCLE
+        ENDIF
+
+        DEBUG_E2E(EID==D_ES,IGAP0)
+
+        IF(IGAP0 == 0)THEN
+          XMAX_EDGS=MAX(XX1,XX2);
+          XMIN_EDGS=MIN(XX1,XX2);
+          YMAX_EDGS=MAX(YY1,YY2);
+          YMIN_EDGS=MIN(YY1,YY2);
+          ZMAX_EDGS=MAX(ZZ1,ZZ2);
+          ZMIN_EDGS=MIN(ZZ1,ZZ2);
+          DEBUG_E2E(EID==D_ES,XMIN_EDGS)
+          DEBUG_E2E(EID==D_ES,YMIN_EDGS)
+          DEBUG_E2E(EID==D_ES,ZMIN_EDGS)
+          DEBUG_E2E(EID==D_ES,XMAX_EDGS)
+          DEBUG_E2E(EID==D_ES,YMAX_EDGS)
+          DEBUG_E2E(EID==D_ES,ZMAX_EDGS)
+          DEBUG_E2E(EID==D_ES,XMIN)
+          DEBUG_E2E(EID==D_ES,YMIN)
+          DEBUG_E2E(EID==D_ES,ZMIN)
+          DEBUG_E2E(EID==D_ES,XMAX)
+          DEBUG_E2E(EID==D_ES,YMAX)
+          DEBUG_E2E(EID==D_ES,ZMAX)
+
+          IF(XMAX_EDGS < XMIN) CYCLE
+          IF(XMIN_EDGS > XMAX) CYCLE
+          IF(YMAX_EDGS < YMIN) CYCLE
+          IF(YMIN_EDGS > YMAX) CYCLE
+          IF(ZMAX_EDGS < ZMIN) CYCLE
+          IF(ZMIN_EDGS > ZMAX) CYCLE
+
+        ELSE
+          IF(I <= NEDGE) THEN
+            G = GAPE(I)
+          ELSE
+            G = XREM_EDGE(E_GAP,I-NEDGE)
+          END IF
+
+          XMAX_EDGS=MAX(XX1,XX2)+G;
+          XMIN_EDGS=MIN(XX1,XX2)-G;
+          YMAX_EDGS=MAX(YY1,YY2)+G;
+          YMIN_EDGS=MIN(YY1,YY2)-G;
+          ZMAX_EDGS=MAX(ZZ1,ZZ2)+G;
+          ZMIN_EDGS=MIN(ZZ1,ZZ2)-G;
+
+          DEBUG_E2E(EID==D_ES,XMIN_EDGS)
+          DEBUG_E2E(EID==D_ES,YMIN_EDGS)
+          DEBUG_E2E(EID==D_ES,ZMIN_EDGS)
+          DEBUG_E2E(EID==D_ES,XMAX_EDGS)
+          DEBUG_E2E(EID==D_ES,YMAX_EDGS)
+          DEBUG_E2E(EID==D_ES,ZMAX_EDGS)
+        END IF
+        !Voxel_lower_left_bound for this edge
+        IX1=INT(NBX*(XMIN_EDGS-XMINB)/(XMAXB-XMINB))
+        IY1=INT(NBY*(YMIN_EDGS-YMINB)/(YMAXB-YMINB))
+        IZ1=INT(NBZ*(ZMIN_EDGS-ZMINB)/(ZMAXB-ZMINB))
+        IX1=MAX(1,2+MIN(NBX,IX1))
+        IY1=MAX(1,2+MIN(NBY,IY1))
+        IZ1=MAX(1,2+MIN(NBZ,IZ1))
+        !Voxel_upper_right_bound for this edge
+        IX2=INT(NBX*(XMAX_EDGS-XMINB)/(XMAXB-XMINB))
+        IY2=INT(NBY*(YMAX_EDGS-YMINB)/(YMAXB-YMINB))
+        IZ2=INT(NBZ*(ZMAX_EDGS-ZMINB)/(ZMAXB-ZMINB))
+        IX2=MAX(1,2+MIN(NBX,IX2))
+        IY2=MAX(1,2+MIN(NBY,IY2))
+        IZ2=MAX(1,2+MIN(NBZ,IZ2))        
+
+        !for voxel reset
+        local_min_x(itask+1) = MIN(local_min_x(itask+1),IX1)
+        local_min_y(itask+1) = MIN(local_min_y(itask+1),IY1)
+        local_min_z(itask+1) = MIN(local_min_z(itask+1),IZ1)
+        local_max_x(itask+1) = MAX(local_max_x(itask+1),IX2)
+        local_max_y(itask+1) = MAX(local_max_y(itask+1),IY2)
+        local_max_z(itask+1) = MAX(local_max_z(itask+1),IZ2)
+        cell_pos_x(i,1) = ix1
+        cell_pos_x(i,2) = ix2
+        cell_pos_y(i,1) = iy1
+        cell_pos_y(i,2) = iy2
+        cell_pos_z(i,1) = iz1
+        cell_pos_z(i,2) = iz2
+      ENDDO
+!$omp end do
+      call my_barrier()
+!$omp single
+      do i=1,nthread
+        min_ix = MIN(min_ix,local_min_x(i))
+        min_iy = MIN(min_iy,local_min_y(i))
+        min_iz = MIN(min_iz,local_min_z(i))
+        max_ix = MAX(max_ix,local_max_x(i))
+        max_iy = MAX(max_iy,local_max_y(i))
+        max_iz = MAX(max_iz,local_max_z(i))
+      enddo
+      current_add = 1 ! first address
+      do i=1,nedge+nedge_remote
+        if(cell_pos_x(i,1)/=0) then
+          !----------------------------------------------!
+          ! EDGE STORAGE FOR EACH VOXEL (CHAINED ARRAY)  !
+          !----------------------------------------------!
+          !       VOXEL(i,j,k) LCHAIN_LAST(FIRST)
+          !       +-----------+------------+
+          !       |  =>FIRST  |   =>LAST   |
+          !       +--+--------+--+---------+
+          !          |           |
+          !          |           |
+          !          |           |
+          !          |           |   LCHAIN_ELEM(*) LCHAIN_NEXT(*)
+          !          |           |   +------------+-----------+
+          !          +-------------->| edge_id    |   iadd 3  |  1:FIRST --+
+          !                      |   +------------+-----------+            |
+          !                      |   |            |              |  2           |
+          !                      |   +------------+-----------+            |
+          !                      |   | edge_id    |   iadd 4  |  3 <-------+
+          !                      |   +------------+-----------+            |
+          !                      |   | edge_id    |   iadd 6  |  4 <-------+
+          !                      |   +------------+-----------+            |
+          !                    |   |            |              |  5           |
+          !                      |   +------------+-----------+            |
+          !                      +-->| edge_id    |   0       |  6:LAST <--+
+          !                        +------------+-----------+
+          !                          |            |              |  MAX_ADD
+          !                          +------------+-----------+
+          ix1 = cell_pos_x(i,1)
+          ix2 = cell_pos_x(i,2)
+          iy1 = cell_pos_y(i,1)
+          iy2 = cell_pos_y(i,2)
+          iz1 = cell_pos_z(i,1)
+          iz2 = cell_pos_z(i,2)
+
+          DO IZ = IZ1,IZ2
+            DO IY = IY1,IY2
+              DO IX = IX1,IX2
+
+                FIRST_ADD = VOXEL(IX,IY,IZ)
+
+                IF(FIRST_ADD == 0)THEN
+                  !voxel encore vide
+                  VOXEL(IX,IY,IZ)          = CURRENT_ADD ! address in the chain array of the first edge found occupying the voxel
+                  LCHAIN_LAST(CURRENT_ADD) = CURRENT_ADD ! Last = Address for Current Edge
+                  LCHAIN_ELEM(CURRENT_ADD) = I               ! edge ID
+                  LCHAIN_NEXT(CURRENT_ADD) = 0               ! no next because it's the last in the list   !
+                ELSE
+                  !voxel contenant deja une edge
+                  PREV_ADD                 = LCHAIN_LAST(FIRST_ADD) ! becomes the penultimate
+                  LCHAIN_LAST(FIRST_ADD)   = CURRENT_ADD                ! update of the last one
+                  LCHAIN_ELEM(CURRENT_ADD) = I                          ! edge ID
+                  LCHAIN_NEXT(PREV_ADD)    = CURRENT_ADD                ! maj du suivant 0 -> CURRENT_ADD
+                  LCHAIN_NEXT(CURRENT_ADD) = 0                          ! no next because it's the last in the list
+                ENDIF
+
+                CURRENT_ADD = CURRENT_ADD+1
+
+                IF( CURRENT_ADD>=MAX_ADD)THEN
+                  !Optimization: DEALLOCATE/GOTO DEBUT SUPRRESION.
+                  !REALLOCATE SI PAS ASSEZ DE PLACE : inutile de recommencer de 1 a MAX_ADD-1, on poursuit de MAX_ADD a 2*MAX_ADD
+                  MAX_ADD = 2 * MAX_ADD
+                  LCHAIN_NEXT => IREALLOCATE(LCHAIN_NEXT, MAX_ADD)
+                  LCHAIN_ELEM => IREALLOCATE(LCHAIN_ELEM, MAX_ADD)
+                  LCHAIN_LAST => IREALLOCATE(LCHAIN_LAST, MAX_ADD)
+                ENDIF
+              ENDDO !IX
+            ENDDO !IY
+          ENDDO !IZ
+        endif
+      enddo
+!$omp end single      
+
+      else
+
 C=======================================================================
 C 1   placing edges in boxes
 C=======================================================================
@@ -394,6 +617,9 @@ C                          +------------+-----------+
       END IF
 C Barrier to wait task0 treatment
       CALL MY_BARRIER
+
+
+      endif
 C
 !  Attention: allocation en NTHREADS x (NEDGE+NEDGE_REMOTE)
       ALLOCATE(TAGEDG(1:NEDGE+NEDGE_REMOTE))
@@ -412,7 +638,7 @@ C=======================================================================
       J_STOK = 0
 
       DO I=1,NEDGE_T
-
+        nb_edge = 0
         IEDG=ESHIFT+I
 
         IF(STFE(IEDG)==ZERO) CYCLE   ! We do not retain the Destruit facets
@@ -495,6 +721,8 @@ C--- IREMGAP - tag of deactivated lines
                   CYCLE
                 END IF
                 TAGEDG(JJ)=1
+                nb_edge = nb_edge + 1
+                edge_index(nb_edge) = jj
 
                 !Second Edge Nodes, exclude couples with common node
                 IF (JJ<=NEDGE)THEN
@@ -616,25 +844,11 @@ C-----------------------------------------------------
           ENDDO    !NEXT IY
         ENDDO     !NEXT IZ
 
-C       Reset TAGEDG
-        DO IZ = IZ1,IZ2
-          DO IY = IY1,IY2
-            DO IX = IX1,IX2
-
-              CHAIN_ADD = VOXEL(IX,IY,IZ)
-              DO WHILE(CHAIN_ADD /= 0)          ! loop on edges of the current voxel
-
-                JJ = LCHAIN_ELEM(CHAIN_ADD)       ! numbers of edge_id swept in the current voxel
-                TAGEDG(JJ)=0
-
-                CHAIN_ADD = LCHAIN_NEXT(CHAIN_ADD)
-
-              END DO
-
-            ENDDO   !NEXT IZ
-          ENDDO    !NEXT IY
-        ENDDO     !NEXT IZ
-
+        ! reset of tagedg
+#include "vectorize.inc"
+        do ijk=1,nb_edge
+          tagedg(edge_index(ijk)) = 0
+        end do
 
 C--- IREMGAP - clean of tagremline
         IF(FLAGREMNODE==2)THEN
@@ -675,7 +889,7 @@ C=======================================================================
       J_STOK = 0
 
       DO I=1,NRTM_T
-
+        nb_edge = 0
         NE  =SSHIFT+I
 
         IF(MSEGTYP(NE)/=0) CYCLE ! not a solid edge
@@ -788,6 +1002,8 @@ C--- IREMGAP - tag of deactivated lines
                   CHAIN_ADD = LCHAIN_NEXT(CHAIN_ADD)
                   CYCLE
                 END IF
+                nb_edge = nb_edge + 1
+                edge_index(nb_edge+1) = jj
                 TAGEDG(JJ)=1
 
                 !Second Edge Nodes, exclude couples with common node
@@ -843,18 +1059,6 @@ C-                  Remote lines are identified by nodes
                   ENDIF
                 ENDIF
 
-CCC ================== DEBUG PRINT =====================
-C               IF(JJ > NEDGE) THEN
-C                 WRITE(6,"(A,X,2I20)") "VOX REM",
-C     .            INT_CHECKSUM(IDS,4,1),IREM_EDGE(E_GLOBAL_ID,JJ-NEDGE)
-C               ELSE
-C                 WRITE(6,"(A,X,2I20)") "VOX LOC",
-C     .            INT_CHECKSUM(IDS,4,1),LEDGE(8,JJ)
-C               ENDIF
-CCC ================== DEBUG PRINT =====================
-C           DEBUG_E2E(EID==D_ES.AND.INT_CHECKSUM(IDS,4,1)==D_EM,0)
-
-
 C ===================================================
 C-----------------------------------------------------
                 J_STOK = J_STOK + 1 !on dispose d'un candidat
@@ -896,24 +1100,11 @@ C-----------------------------------------------------
           ENDDO    !NEXT IY
         ENDDO     !NEXT IZ
 
-C       Reset TAGEDG
-        DO IZ = IZ1,IZ2
-          DO IY = IY1,IY2
-            DO IX = IX1,IX2
-
-              CHAIN_ADD = VOXEL(IX,IY,IZ)
-              DO WHILE(CHAIN_ADD /= 0)          ! loop on edges of the current voxel
-
-                JJ = LCHAIN_ELEM(CHAIN_ADD)       ! numbers of edge_id swept in the current voxel
-                TAGEDG(JJ)=0
-
-                CHAIN_ADD = LCHAIN_NEXT(CHAIN_ADD)
-
-              END DO
-
-            ENDDO   !NEXT IZ
-          ENDDO    !NEXT IY
-        ENDDO     !NEXT IZ
+        ! reset of tagedg
+#include "vectorize.inc"
+        do ijk=1,nb_edge
+          tagedg(edge_index(ijk)) = 0
+        end do
 
 C--- IREMGAP - clean of tagremline
         IF(FLAGREMNODE==2)THEN
@@ -937,29 +1128,6 @@ C-------------------------------------------------------------------------
      6                 EDG_BISECTOR,VTX_BISECTOR ,CAND_PS,PROV_IDS,
      7                 IFQ,CANDE2S_FX ,CANDE2S_FY,CANDE2S_FZ,IFPEN_E2S,
      8                 DGAPLOAD)
-
-C=======================================================================
-C 4   reset nodes to zero in the boxes
-C=======================================================================
-
-CC=============== DEBUG
-C       DO I = 1, LL_STOK
-C         JJ = CANDS_E2S(I)
-C         NE = CANDM_E2S(I)
-C         IDS(1) = ITAB(IRECT(1,NE))
-C         IDS(2) = ITAB(IRECT(2,NE))
-C         IDS(3) = ITAB(IRECT(3,NE))
-C         IDS(4) = ITAB(IRECT(4,NE))
-C         IF(JJ > NEDGE) THEN
-C           CRITE(6,"(A,X,2I20)") "VOX REM",
-C     .      INT_CHECKSUM(IDS,4,1),IREM_EDGE(E_GLOBAL_ID,JJ-NEDGE)
-C         ELSE
-C           WRITE(6,"(A,X,2I20)") "VOX LOC",
-C     .      INT_CHECKSUM(IDS,4,1),LEDGE(8,JJ)
-C         ENDIF
-C       ENDDO
-C=======================================================================
-
 
   400 CONTINUE
 
@@ -990,6 +1158,15 @@ C Barrier to avoid reinitialization before end of sorting
         DEALLOCATE(LCHAIN_ELEM)
         DEALLOCATE(LCHAIN_LAST)
         IF(FLAGREMNODE==2) DEALLOCATE(TAGREMLINE)
+        deallocate(cell_pos_x)
+        deallocate(cell_pos_y)
+        deallocate(cell_pos_z)
+        deallocate(local_min_x)
+        deallocate(local_min_y)
+        deallocate(local_min_z)
+        deallocate(local_max_x)
+        deallocate(local_max_y)
+        deallocate(local_max_z)
       ENDIF
 
       DEALLOCATE(TAGEDG)
